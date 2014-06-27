@@ -1,0 +1,138 @@
+#!/usr/bin/env python
+
+"""
+Small script for Michelle to test new corners values against the
+values stored in the new/test DB
+Felipe Menanteau, NCSA.
+
+Requires:
+ depyutils 
+ pyfits
+ CoreUtils
+
+Make sure to load:
+ setup despyutils
+ setup pyfits
+ setup CoreUtils
+
+"""
+
+import os,sys
+from despyutils import wcsutil
+from pyfits import getheader
+import coreutils.desdbi
+
+def cornersFile(fitsFile):
+
+    """
+    Compue the CCDs corners from image using wcsutils and the 'new' naming convension
+
+    DESDM CCD Image Corner Coordinates definitions fora DECam
+    see: https://desdb.cosmology.illinois.edu/confluence/display/PUB/CCD+Image+Corners+Coordinates
+    
+    
+                         x-axis 
+          (RA4,DEC4)                   (RA3,DEC3)
+          Corner 4 +-----------------+ Corner 3
+        (1,NAXIS2) |                 | (NAXIS1,NAXIS2)
+                   |                 |
+                   |                 |             
+                   |                 |             
+                   |                 |             
+                   |                 |   y-axis
+                   |                 |             
+                   |                 |             
+                   |                 |
+                   |                 |
+         (RA1,DEC1)|                 | (RA2,DEC2)            
+          Corner 1 +-----------------+ Corner 2
+             (1,1)                     (NAXIS1,1)
+
+    """
+
+    hdr = getheader(fitsFile, 0) # get primary HDU's header
+    # Short-cut for less typing
+    nx = hdr['naxis1']
+    ny = hdr['naxis2']
+    
+    wcs = wcsutil.WCS(hdr)
+    rac1,decc1 = wcs.image2sky(1, 1)
+    rac2,decc2 = wcs.image2sky(nx,1)
+    rac3,decc3 = wcs.image2sky(nx,ny)
+    rac4,decc4 = wcs.image2sky(1, ny)
+    
+    return rac1,decc1,rac2,decc2,rac3,decc3,rac4,decc4
+
+def findFilename(filename,section_destest="db-destest"):
+
+    try:
+        desdmfile = os.environ["des_services"]
+    except KeyError:
+        desdmfile = None
+    dbh = coreutils.desdbi.DesDbi(desdmfile,section_destest)
+    cur = dbh.cursor()
+
+    # Root location -- Change when all soft-links exit
+    #query1 = "select root from ops_archive where name='desar2home'"
+    #cur.execute(query1)
+    #(root,) = cur.fetchone()
+    #root = '/archive_data/Prototype/refacthome'
+    root = '/des003/Prototype/refacthome' # Hack for now
+
+    # Figure out the location 
+    query2 = "select path from file_archive_info where filename='%s'" % filename
+    cur.execute(query2)
+    (path_to_file,) = cur.fetchone()
+    cur.close()
+    fullFilename = os.path.join(root,path_to_file,filename) 
+    return fullFilename
+    
+
+def cornersDB(filename):
+
+    section_destest = "db-destest"
+    try:
+        desdmfile = os.environ["des_services"]
+    except KeyError:
+        desdmfile = None
+    dbh = coreutils.desdbi.DesDbi(desdmfile,section_destest)
+    cur = dbh.cursor()
+    
+    # Get the corners from DB
+    query = "select rac1,decc1, rac2,decc2, rac3,decc3, rac4,decc4 from image where filename='%s'" % filename
+    cur.execute(query)
+    #rac1,decc1,rac2,decc2,rac3,decc3,rac4,decc4 = cur.fetchone()
+    corners = cur.fetchone()
+    cur.close()
+    return corners
+
+if __name__ == "__main__":
+
+    filename = sys.argv[1]
+
+    # Get the DB Corners
+    print "# Geeting CCD corners from DB for: %s" % filename
+    
+    (db_rac1,db_decc1,
+     db_rac2,db_decc2,
+     db_rac3,db_decc3,
+     db_rac4,db_decc4) = cornersDB(filename)
+
+    # Figure out the location in /archive
+    fullFilename = findFilename(filename)
+    print "# Computing CCD corners for: %s" % fullFilename
+
+    (fl_rac1,fl_decc1,
+     fl_rac2,fl_decc2,
+     fl_rac3,fl_decc3,
+     fl_rac4,fl_decc4) = cornersFile(fullFilename)
+
+    print "Delta(RAC1)  = %s "  % (db_rac1-fl_rac1)
+    print "Delta(RAC2)  = %s "  % (db_rac2-fl_rac2)
+    print "Delta(RAC3)  = %s "  % (db_rac3-fl_rac3)
+    print "Delta(RAC4)  = %s "  % (db_rac4-fl_rac4)
+    print " "
+    print "Delta(DECC1) = %s "  % (db_decc1-fl_decc1)
+    print "Delta(DECC2) = %s "  % (db_decc2-fl_decc2)
+    print "Delta(DECC3) = %s "  % (db_decc3-fl_decc3)
+    print "Delta(DECC4) = %s "  % (db_decc4-fl_decc4)

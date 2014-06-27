@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+
+import os,sys
+from qatoolkit import ds9DES as ds9
+
+"""
+ A very very simple stand-alone script to display DECam mef fits
+ files. It uses a lot of functions from my ds9.py module, which are
+ available via despyutils
+
+ It needs:
+  - python
+  - ds9
+  - xpa
+
+ F. Menanteau, NCSA, Aug 2013.
+
+ The DECam *.fits processed images format is
+ [0] - Science Image
+ [1] - Weight Image
+ [2] - Mask Image
+
+ The DECam *.fits.fz processed images format is
+ [0] - ?????
+ [1] - Science Image
+ [2] - Weight Image
+ [3] - Mask Image
+
+"""
+
+def main(verb='yes'):
+
+    # Check whether this is a *.fits of *.fitz.fz file
+    try:
+        filename = sys.argv[1]
+    except:
+        sys.exit("USAGE: display_DECamMEFs <DECam_CCDfiles.fits>\n")
+        
+    if os.path.splitext(filename)[-1] == ".fits":
+        k = 0
+    elif os.path.splitext(filename)[-1] == ".fz": 
+        k = 1
+    else:
+        sys.exit("ERROR: Unknown file extension: %s" %  os.path.splitext(filename)[-1])
+
+    print "# Will try to display %s" % filename
+
+    # Check env variables and set to proper values
+    ds9.check_env(verb=verb);
+
+    # Check if DS9 is already running -- if not start
+    status =  ds9.check_ds9(verb=verb);
+
+    # Will display images in new frame if existing session
+    if status == 'old':
+        os.system("xpaset -p ds9 frame new")
+
+    # Put them in separated frames
+    # Science Frame
+    print "# Displaying %s[%d] with zscale" % (filename,k)
+    os.system("xpaset -p ds9 scale mode zscale")
+    os.system("xpaset -p ds9 scale linear")
+    os.system("xpaset -p ds9 cmap  gray")
+    os.system("xpaset -p ds9 file \'%s[%d]\'" % (filename,k))
+    os.system("xpaset -p ds9 zoom to fit")
+
+    # Mask Frame
+    print "# Displaying %s[%d] with minmax" % (filename,k+1)
+    os.system("xpaset -p ds9 frame new")
+    os.system("xpaset -p ds9 scale log")
+    os.system("xpaset -p ds9 scale mode minmax")
+    os.system("xpaset -p ds9 cmap  hsv")
+    os.system("xpaset -p ds9 file \'%s[%d]\'" % (filename,k+1))
+    os.system("xpaset -p ds9 zoom to fit")
+
+    # Weight Frame
+    print "# Displaying %s[%d] with zscale" % (filename,k+2)
+    os.system("xpaset -p ds9 frame new")
+    os.system("xpaset -p ds9 scale linear")
+    os.system("xpaset -p ds9 scale mode zscale")
+    os.system("xpaset -p ds9 cmap  gray")
+    os.system("xpaset -p ds9 file \'%s[%d]\'" % (filename,k+2))
+    os.system("xpaset -p ds9 zoom to fit")
+    return
+
+main()
