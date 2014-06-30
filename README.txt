@@ -1,3 +1,22 @@
+A collection of python-based Quality Assesment scripts and modules for DESDM,
+including both interactive and non-interative ones (for noe). The
+majority were migrated from the now extinct (deprecated) DESDMtools.
+
+Felipe Menanteau, June 2014. 
+
+Requirements:
+-------------
+
+- despyutils (loads numpy, scipy, matplotlib and scipy)
+- PIL
+- fitsio
+- stiff
+- swarp
+- cfitsio
+- ds9
+- xpa
+
+
 To set up for testing:
 ----------------------
  setup -r ~/DESDM-Code/devel/qatoolkit/trunk
@@ -15,12 +34,13 @@ To install:
 Scripts: (inside bin/)
 ----------------------
 
- - color_tile : generate RGB color image for a DES Tile
+ - color_tile : generate RGB color image for a DES Tile (in the old DB
+ schema and file structure, it still needs to be modidied for the Refact system)
 
  - projectDECamPNG : Projects a DECam exposure using SWarp and creates
  grayscale PNGs using Python's native PIL/Image module. It reads the
- input files from lists provided command-line. To be used in the
- Refact system.
+ input files from lists provided command-line. This script is aimed for the
+ Refacted system.
 
  - projectDECamPNG_SQL : Projects a DECam exposure using SWarp and
  creates grayscale PNGs using Python's native PIL/Image module. Gets
