@@ -1,4 +1,6 @@
 
 - version 0.1.0: Initial version (June 2014).
 
-
+- version 0.1.1: 
+  Added -NTHREADS_swarp option for SWAarp 
+        -NTHREADS_stiff option for stiff 

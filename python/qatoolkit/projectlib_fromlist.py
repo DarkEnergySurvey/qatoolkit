@@ -194,7 +194,7 @@ class project_DECam_fromlist:
         opts = opts + ' -VERBOSE_TYPE FULL'
         opts = opts + ' -PIXELSCALE_TYPE MANUAL'
         opts = opts + ' -PIXEL_SCALE %s' % self.pixscale
-        opts = opts + ' -NTHREADS 0'
+        opts = opts + ' -NTHREADS %d'      % self.NTHREADS_swarp
         opts = opts + ' -IMAGEOUT_NAME %s' % self.swarp_outname
 
         ############################################################################
@@ -258,6 +258,7 @@ class project_DECam_fromlist:
         opts = opts + " -WRITE_XML    N"           # Write XML file (Y/N)?
         opts = opts + " -COPYRIGHT    DES/NCSA"    # Copyright
         opts = opts + " -COPY_HEADER  Y"           # Copy FITS header to description field?
+        opts = opts + ' -NTHREADS %d' % self.NTHREADS_stiff # Number of simultaneous threads
         opts = opts + " -OUTFILE_NAME %s" % self.tiffile
         stiff_cmd = "%s %s %s" % (stiff_exe,self.swarp_outname,opts)
 
@@ -526,6 +527,12 @@ def cmdline():
                         help="Keep each CCD projected file")
     parser.add_argument("--noBack", action="store_true", default=False,
                         help="Avoids Background substraction on SWarp call")
+    parser.add_argument("--NTHREADS_swarp", type=int,default=0,
+                        help="NTHREADS for SWarp [0=auto]")
+    parser.add_argument("--NTHREADS_stiff", type=int,default=0,
+                        help="NTHREADS for stiff [0=auto]")
+    
+
     
     args = parser.parse_args()
 

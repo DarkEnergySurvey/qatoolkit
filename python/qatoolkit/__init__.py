@@ -1,11 +1,12 @@
 __author__  = "Felipe Menanteau"
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 version = __version__
 
 """
  A collection of Python-based QA tools/modules for DESDM 
 """
 import projectlib
+import projectlib_fromlist
 import focuschips
 import display
 import ds9DES
