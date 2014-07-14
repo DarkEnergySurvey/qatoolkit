@@ -1,6 +1,6 @@
 # Python modules
 # despyutils loads: python, numpy, matplotlib and pyfits
-setupRequired("despyutils 0.1.6+1") 
+setupRequired("despyutils 0.1.8+0") 
 
 # We need fwsplit from coreutils.miscutils 
 setupRequired("CoreUtils 0.8.4+2") 
