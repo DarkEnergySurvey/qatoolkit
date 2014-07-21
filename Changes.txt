@@ -4,3 +4,13 @@
 - version 0.1.1: 
   Added -NTHREADS_swarp option for SWAarp 
         -NTHREADS_stiff option for stiff 
+
+
+- version 0.1.2: 
+  fixed functions:
+    cross_RA_zero() 
+    get_exposure_imsize_center()
+
+  in both projectlib.py and projectlib_fromlist.py
+  to account for missing CCD31. Now it probes for CCD in oppostites
+  edges of the exposure
