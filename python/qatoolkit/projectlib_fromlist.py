@@ -162,10 +162,10 @@ class project_DECam_fromlist:
         opts = ''
         # CHANGE: This only work if we use eups, might want more general solution
         try:
+            print "# Loading configuration via QATOOLKIT_DIR evironment variable"
             opts = opts + ' -c  %s/etc/default.swarp' % os.environ['QATOOLKIT_DIR']
         except:
-            print "# Setting local Environment for swarp configuration"
-            opts = opts + ' -c  %s/DESDM-Code/devel/qatoolkit/trunk/etc/default.swarp' % os.environ['HOME']
+            sys.exit("# ERROR: could not define files via QATOOLKIT_DIR evironment variable")
 
         ##############################################################################
         # Tries to fix the background calculation around large bright objects/stars
@@ -391,8 +391,17 @@ class project_DECam_fromlist:
 
         """
         Check that we are not crossing the RA=0.0 by comparing the
-        distance in RA for CCD25-CCD31 (opposite) making sure is not
-        greated the 1 degree
+        distance in RA of oppostive CCDs making sure is not
+        greated than the DEcam width.
+
+        Alernative solutions to scanning just a few CCD images:
+
+        1) use the function drawDECam.createDECam_TANheader() to
+        generate a fake TAN for the image. It's quick, but if the WCS
+        of the image has changed a lot, might not be accurate
+
+        2) loop over all of the wcs of the images... slower (a few secs) but safer.
+
         """
 
         d2r = math.pi/180. # degrees to radians shorthand
@@ -402,20 +411,37 @@ class project_DECam_fromlist:
         # Center of chips 2048x4096
         xo = 1024
         yo = 4096
-        ima1 = self.imgfiles[25-1]
-        ima2 = self.imgfiles[31-1]
 
-        # Use wcsutil to transform coords
-        hdr1 = pyfits.getheader(ima1)
-        hdr2 = pyfits.getheader(ima2)
+        # Figure out the min and max RA of the image, looping trough all of them
+        print "# Figuring out edges of CCDs"
+        foundRA1 = False
+        foundRA2 = False
+        foundCenter = False
+        t0 = time.time()
+        for filename in self.imgfiles:
+            hdr = pyfits.getheader(filename)
 
-        wcs1 = wcsutil.WCS(hdr1)
-        wcs2 = wcsutil.WCS(hdr2)
+            if hdr['CCDNUM'] == 25 or hdr['CCDNUM'] == 32 or not foundRA1:
+                wcs = wcsutil.WCS(hdr)
+                ra1,dec1 = wcs.image2sky(xo,yo)
+                foundRA1 = True 
+                
+            if hdr['CCDNUM'] == 31 or hdr['CCDNUM'] == 38 or not foundRA2:
+                wcs = wcsutil.WCS(hdr)
+                ra2,dec2 = wcs.image2sky(xo,yo)
+                foundRA2 = True 
 
-        ra1,dec1 = wcs1.image2sky(xo,yo)
-        ra2,dec2 = wcs2.image2sky(xo,yo)
+            # And the center image
+            if hdr['CCDNUM'] == 28:
+                self.centerCCD = filename
+                foundCenter = True
+
+        if not foundRA1 or not foundRA1:
+            print "# Warning: could not find exposure edges"
+            
+        print "# Cross RA examination: %s" % elapsed_time(t0)
         dec = (dec1+dec2)/2.0
-        D = abs(ra2-ra1)
+        D = abs(ra1-ra2)
 
         # in case ras near 360 have negative values
         # so, we need to check that both ras have the same sign
@@ -444,14 +470,12 @@ class project_DECam_fromlist:
         self.NX = int(NX*self.INPUT_PIXEL_SCALE/self.pixscale)
         self.NY = int(NY*self.INPUT_PIXEL_SCALE/self.pixscale)
         # 2. Get the center in RA,Dec
-        # This is for the Rotated CCD35 - 
         xo = 2048+104 # 208 is the space between chips in pixels
         yo = 2048
-        imaname = self.scilist[28-1]
-        hdr = pyfits.getheader(imaname)
+        print "# Will recompute the center using %s" % self.centerCCD
+        hdr = pyfits.getheader(self.centerCCD)
         wcs = wcsutil.WCS(hdr)         # use wcsutils
         self.RA0,self.DEC0 = wcs.image2sky(xo,yo)
-        return
 
     def clean_up_weight(self):
 
