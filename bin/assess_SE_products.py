@@ -195,8 +195,8 @@ if __name__ == "__main__":
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     
-    svnid="$Id: assess_SE_products.py 18503 2014-01-29 21:00:57Z rgruendl $"
-    svnrev="$Revision$".split(" ")[-2]
+    svnid="$Id$"
+    svnrev="$Revision: 25114 $".split(" ")[-2]
     db_table="firstcut_eval_refact"
 
     parser = argparse.ArgumentParser(description='Assess whether the pipeline products of a FIRSTCUT/FINALCUT processing meet survey quality metrics.')
