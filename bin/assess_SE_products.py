@@ -190,7 +190,7 @@ if __name__ == "__main__":
     import datetime
     import numpy
     import fitsio
-    from numpy import *
+#    from numpy import *
     import matplotlib 
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -281,7 +281,7 @@ if __name__ == "__main__":
     magbin_min=10.
     magbin_max=25.
     magbin_step=0.25
-    mbin=arange(magbin_min,magbin_max,magbin_step)
+    mbin=numpy.arange(magbin_min,magbin_max,magbin_step)
     band2i={"u":0,"g":1,"r":2,"i":3,"z":4,"Y":5}
 #
 #   Old ellipticity limits (currently not used)
@@ -732,7 +732,7 @@ if __name__ == "__main__":
         exp_rec["astrom_off2"]=float(item[coldict["q.astromoffset_ref_highsn_2"]])
         sigx=float(item[coldict["q.astromsigma_ref_highsn_1"]])
         sigy=float(item[coldict["q.astromsigma_ref_highsn_2"]])
-        exp_rec["astrom_rms2"]=sqrt((sigx*sigx)+(sigy*sigy))
+        exp_rec["astrom_rms2"]=numpy.sqrt((sigx*sigx)+(sigy*sigy))
 
     print "########################################"
     print "########################################"
@@ -1020,7 +1020,7 @@ if __name__ == "__main__":
 #   Time to read in the finalcut_cat (was red_cat) products.
 #   Setup to read catalogs
 #
-    mtime=2.5*log10(exp_rec["exptime"])
+    mtime=2.5*numpy.log10(exp_rec["exptime"])
     aval=aterm[band2i[exp_rec["band"]]]
     mcorr=mtime-aval-25.0
     mag=[]
@@ -1423,7 +1423,7 @@ if __name__ == "__main__":
 
             ncnt=icnt-1-i0
             if (ncnt > 1):
-                x=median(emagerr_sort[i0:icnt-1])
+                x=numpy.median(emagerr_sort[i0:icnt-1])
             elif (ncnt == 1):
                 x=emagerr_sort[i0]
             else:
