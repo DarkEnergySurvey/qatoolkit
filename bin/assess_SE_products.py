@@ -197,7 +197,7 @@ if __name__ == "__main__":
     
     svnid="$Id$"
     svnrev="$Revision: 25114 $".split(" ")[-2]
-    db_table="firstcut_eval_refact"
+    db_table="firstcut_eval"
 
     parser = argparse.ArgumentParser(description='Assess whether the pipeline products of a FIRSTCUT/FINALCUT processing meet survey quality metrics.')
     parser.add_argument('-R', '--ReqNum',   action='store', type=str, default=None, help='Processing request number.')
@@ -212,9 +212,9 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--csv',      action='store_true', default=False, help='Flag for optional output of CSV')
     parser.add_argument('-u', '--updateDB', action='store_true', default=False, help='Flag for program to DIRECTLY update DB (%s).' % (db_table) )
     parser.add_argument('-D', '--DB_file',  action='store_true', default=False, help='Flag for optional output of DB update file')
-    parser.add_argument('-f', '--froot',    action='store',      default='assess_', help='Root for output file names')
-    parser.add_argument('-M', '--Magout',   action='store_true', default=False,
-                         help='Flag to dump file containing raw data summarizing number of objects per magnitude bin.')
+    parser.add_argument('-f', '--froot',    action='store',      default=None, help='Root for output file names')
+#    parser.add_argument('-M', '--Magout',   action='store_true', default=False,
+#                         help='Flag to dump file containing raw data summarizing number of objects per magnitude bin.')
     parser.add_argument('-q', '--qaplot',   action='store_true', default=False, help='Flag to generate QA plots.')
     parser.add_argument('-d', '--delimiter', action='store',  default=',', help='Optional delimiter for CSV (default=,)')
 
@@ -739,8 +739,10 @@ if __name__ == "__main__":
     print "########################################"
 
 ################################################
-#   Open generic output file
-    ftxt = open("%s.txt"% (args.froot), 'w')
+#   Open generic output file (changed to STDOUT)
+#    ftxt=open("%s.txt"% (args.froot), 'w')
+    sys.stdout.flush()
+    ftxt = sys.stdout 
 ###############################################################################
 #
 #   Initial query to obtain run information (and to make sure that processing was successful/completed
@@ -776,10 +778,11 @@ if __name__ == "__main__":
 #   Prepare output files for writing
 #   First the header for the summary (.txt) file
 #
-    ftxt.write("#                                                                                                         Astrometry \n")     
-    ftxt.write("# Exposure                                     FWHM                             #        AIR    EXP  SCMP  HighSN     Depth       APASS           NOMAD      FWHM            \n")
-    ftxt.write("#  Num   STATE    t_eff F_eff  B_eff   C_eff   World  Ellip    Sky_B   N_src   CCD BAND  MASS   TIME Flag sig1  sig2     Assess     dmag    #       dmag    #     Img    Object   \n")
-    ftxt.write("#                                               [\"]           [DN/s]                             [s]      [\"]    [\"]     [mag]    [mag]            [mag]         \n")
+#   CHANGED to write to stdout (so needs to occur at the end)
+#    ftxt.write("#                                                                                                         Astrometry \n")     
+#    ftxt.write("# Exposure                                     FWHM                             #        AIR    EXP  SCMP  HighSN     Depth       APASS           NOMAD      FWHM            \n")
+#    ftxt.write("#  Num   STATE    t_eff F_eff  B_eff   C_eff   World  Ellip    Sky_B   N_src   CCD BAND  MASS   TIME Flag sig1  sig2     Assess     dmag    #       dmag    #     Img    Object   \n")
+#    ftxt.write("#                                               [\"]           [DN/s]                             [s]      [\"]    [\"]     [mag]    [mag]            [mag]         \n")
 
 #
 #    Prepare for optional CSV output if args.csv is TRUE
@@ -1266,7 +1269,7 @@ if __name__ == "__main__":
                 plt.ylabel('DES - APASS i\'')
             else:
                 plt.ylabel('DES - APASS [unknown]')
-            plt.savefig("%s.%s.apass.png" % (args.froot,exp_rec["expnum"]))
+            plt.savefig("%s_apass.png" % (args.froot))
 #           plt.show()
 #
 #   Repeat for NOMAD
@@ -1362,7 +1365,7 @@ if __name__ == "__main__":
                 plt.ylabel('DES - NOMAD [(2*B+J)/3]')
             else:
                 plt.ylabel('DES - NOMAD [unknown]')
-            plt.savefig("%s.%s.nomad.png" % (args.froot,exp_rec["expnum"]))
+            plt.savefig("%s_nomad.png" % (args.froot))
 #           plt.show()
 
 #
@@ -1517,7 +1520,7 @@ if __name__ == "__main__":
             plt.axis([8,26,-0.01,0.5])
             plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
             plt.ylabel('median(magerr_auto)')
-            plt.savefig("%s.%s.magplot.png" % (args.froot,exp_rec["expnum"]))
+            plt.savefig("%s_magplot.png" % (args.froot))
 #           plt.show()
     exp_rec["mag_thresh"]=mag_thresh
     t6=time.time()
@@ -1623,7 +1626,6 @@ if __name__ == "__main__":
 #   PROGRAM                        VARCHAR2(10)
 #   ANALYST                        VARCHAR2(30)
 #   ANALYST_COMMENT                    VARCHAR2(30)
-#   LASTCHANGED_TIME                   DATE
 #   T_EFF                          NUMBER(8,3)
 #   F_EFF                          NUMBER(8,3)
 #   B_EFF                          NUMBER(8,3)
@@ -1684,28 +1686,21 @@ if __name__ == "__main__":
         if (args.DB_file):
             fdbout.write("{:s};\n".format(insert_command))
 
-#   if (new_decide != "fail"):
-        ftxt.write(" {:9d} {:4s}  {:6.2f} {:6.2f} {:6.2f} {:6.2f}   {:5.2f} {:6.3f} {:8.2f} {:7d}   {:3d} {:1s} {:1d} {:6.3f} {:6.1f} {:2d} {:6.3f} {:6.3f}  {:8.3f} {:8.3f} {:6d} {:8.3f} {:6d} {:6.3f} {:s} \n".format(
-        exp_rec["expnum"],new_decide,exp_rec["teff"],exp_rec["teff_f"],exp_rec["teff_b"],exp_rec["teff_c"],
-        exp_rec["fwhm_world"],exp_rec["ellip_avg"],exp_rec["skyb_avg"],exp_rec["numobj"],
-        exp_rec["numccd"],exp_rec["band"],band2i[exp_rec["band"]],exp_rec["airmass"],exp_rec["exptime"],
-        exp_rec["scamp_sum"],exp_rec["astrom_sig1"],exp_rec["astrom_sig2"],
-        exp_rec["magdiff"],exp_rec["apass_magdiff"],exp_rec["apass_num"],exp_rec["nomad_magdiff"],exp_rec["nomad_num"],exp_rec["fwhm_img"],exp_rec["object"]))
-
-#,exp_rec["mag_thresh"],exp_rec["fwhm_img"],exp_rec["fwhm_rrad1"],exp_rec["fwhm_rrad2"],exp_rec["fwhm_krad"],exp_rec["fwhm_frad"],exp_rec["object"]))
-
 #
-#               OLD version write
+#   Write the summary of the assessment to STDOU
 #
-#       print(" {:12d} {:17s} {:6.2f} {:6.2f} {:6.2f} {:4s} {:3s} {:2d} {:3d} {:1s} {:1d} {:6.3f} {:6.1f} {:10.5f} {:10.5f} {:10.5f}  {:5.2f} {:5.2f} {:6.3f} {:6.3f}  {:3d} {:6.3f} {:6.3f} {:6.1f} {:6.1f} {:7d} {:7d}  {:8.2f} {:8.2f} {:8.2f} {:8.3f} {:7d} ".format(
-#       exp_rec["qexpid"],exp_rec["expname"],exp_rec["teff_f"],exp_rec["teff_b"],exp_rec["teff"],decide_state,state_flag,grade,exp_rec["numccd"],exp_rec["band"],band2i[exp_rec["band"]],exp_rec["airmass"],exp_rec["exptime"],
-#       exp_rec["telra"],exp_rec["teldec"],exp_rec["telha"],
-#       exp_rec["fwhm_avg"],exp_rec["fwhm_rms"],exp_rec["ellip_avg"],exp_rec["ellip_rms"],
-#       exp_rec["scampflg"],exp_rec["astrom_rms1"],exp_rec["astrom_rms2"],exp_rec["astrom_chi1"],exp_rec["astrom_chi2"],exp_rec["astrom_nstar1"],exp_rec["astrom_nstar2"],
-#       exp_rec["skyb_avg"],exp_rec["skyb_rms"],exp_rec["skys_avg"],exp_rec["skys_rms"],exp_rec["numobj"]))
-    else:
-        print(" {:9d}                   {:6s} {:3d} ".format(
-        exp_rec["expnum"],new_decide,exp_rec["numccd"]))
+
+    ftxt.write("#                                                                                                         Astrometry \n")     
+    ftxt.write("# Exposure                                     FWHM                             #        AIR    EXP  SCMP  HighSN     Depth       APASS           NOMAD      FWHM            \n")
+    ftxt.write("#  Num   STATE    t_eff F_eff  B_eff   C_eff   World  Ellip    Sky_B   N_src   CCD BAND  MASS   TIME Flag sig1  sig2     Assess     dmag    #       dmag    #     Img    Object   \n")
+    ftxt.write("#                                               [\"]           [DN/s]                             [s]      [\"]    [\"]     [mag]    [mag]            [mag]         \n")
+#
+    ftxt.write(" {:9d} {:4s}  {:6.2f} {:6.2f} {:6.2f} {:6.2f}   {:5.2f} {:6.3f} {:8.2f} {:7d}   {:3d} {:1s} {:1d} {:6.3f} {:6.1f} {:2d} {:6.3f} {:6.3f}  {:8.3f} {:8.3f} {:6d} {:8.3f} {:6d} {:6.3f} {:s} \n".format(
+    exp_rec["expnum"],new_decide,exp_rec["teff"],exp_rec["teff_f"],exp_rec["teff_b"],exp_rec["teff_c"],
+    exp_rec["fwhm_world"],exp_rec["ellip_avg"],exp_rec["skyb_avg"],exp_rec["numobj"],
+    exp_rec["numccd"],exp_rec["band"],band2i[exp_rec["band"]],exp_rec["airmass"],exp_rec["exptime"],
+    exp_rec["scamp_sum"],exp_rec["astrom_sig1"],exp_rec["astrom_sig2"],
+    exp_rec["magdiff"],exp_rec["apass_magdiff"],exp_rec["apass_num"],exp_rec["nomad_magdiff"],exp_rec["nomad_num"],exp_rec["fwhm_img"],exp_rec["object"]))
 
     if(args.updateDB):
         dbh.commit()
