@@ -201,7 +201,7 @@ class project_DECam_fromlist:
         # Extra option in case we cross RA=0 and need to perform manual centering
         # Check if cross RA=0 -- return self.crossRA [True/False]
         ############################################################################
-        self.cross_RA_zero()
+        self.cross_RA_zero_center()
         if self.crossRA:
             print "# Manualy centering exposure..."
             self.get_exposure_imsize_center()
@@ -387,61 +387,46 @@ class project_DECam_fromlist:
             im.save(self.TN_ell,"png",options='optimize')
         return
 
-    def cross_RA_zero(self):
+
+    def cross_RA_zero_center(self):
 
         """
-        Check that we are not crossing the RA=0.0 by comparing the
-        distance in RA of oppostive CCDs making sure is not
-        greated than the DEcam width.
-
-        Alernative solutions to scanning just a few CCD images:
-
-        1) use the function drawDECam.createDECam_TANheader() to
-        generate a fake TAN for the image. It's quick, but if the WCS
-        of the image has changed a lot, might not be accurate
-
-        2) loop over all of the wcs of the images... slower (a few secs) but safer.
-
+        Check if crossing the RA=0.0 by the min and max
+        values for the centers of all CCDs. We loop over all of the
+        wcs of the images... slower (a few secs) but safer in case
+        some CCDs are missing.
         """
-
+        
         d2r = math.pi/180. # degrees to radians shorthand
         DECam_width = 2.3  # approx width in degrees
 
-        # CHANGE: Hard-coded for now, should fix to more general code
-        # Center of chips 2048x4096
-        xo = 1024
-        yo = 4096
-
-        # Figure out the min and max RA of the image, looping trough all of them
+        # Collect the centers of all CCDS first and store to compare later
+        # Slowers than asking for particular CCDs, but safer
         print "# Figuring out edges of CCDs"
-        foundRA1 = False
-        foundRA2 = False
-        foundCenter = False
         t0 = time.time()
+        ra0  = []
+        dec0 = []
         for filename in self.imgfiles:
             hdr = pyfits.getheader(filename)
+            wcs = wcsutil.WCS(hdr)
+            nx = hdr['NAXIS1']
+            ny = hdr['NAXIS2']
+            ra,dec = wcs.image2sky(nx/2.0,ny/2.0)
+            ra0.append(ra)
+            dec0.append(dec)
 
-            if hdr['CCDNUM'] == 25 or hdr['CCDNUM'] == 32 or not foundRA1:
-                wcs = wcsutil.WCS(hdr)
-                ra1,dec1 = wcs.image2sky(xo,yo)
-                foundRA1 = True 
-                
-            if hdr['CCDNUM'] == 31 or hdr['CCDNUM'] == 38 or not foundRA2:
-                wcs = wcsutil.WCS(hdr)
-                ra2,dec2 = wcs.image2sky(xo,yo)
-                foundRA2 = True 
+        self.ra0  = numpy.array(ra0)
+        self.dec0 = numpy.array(dec0)
 
-            # And the center image
-            if hdr['CCDNUM'] == 28:
-                self.centerCCD = filename
-                foundCenter = True
+        # Get min and max values
+        dec1 = self.dec0.min()
+        dec2 = self.dec0.max()
+        ra1  = self.ra0.min()
+        ra2  = self.ra0.max()
 
-        if not foundRA1 or not foundRA1:
-            print "# Warning: could not find exposure edges"
-            
         print "# Cross RA examination: %s" % elapsed_time(t0)
-        dec = (dec1+dec2)/2.0
-        D = abs(ra1-ra2)
+        dec0 = (dec1+dec2)/2.0
+        D  = abs(ra1-ra2)
 
         # in case ras near 360 have negative values
         # so, we need to check that both ras have the same sign
@@ -450,32 +435,130 @@ class project_DECam_fromlist:
         else:
             same_sign = False
 
-        if  D > 2*DECam_width/math.cos(dec*d2r) or same_sign is False:
+        # The tolerace for deciding when we crossed RA=0 is ~2x a
+        # DECam FOV at the declination
+        tol = 2*DECam_width/math.cos(dec0*d2r)
+        if  D > tol or same_sign is False:
             self.crossRA = True
             print "# *****************************************"
             print "# **  WARNING: exposure crosses RA=0.0   **"
             print "# *****************************************"
+
+            # Bring to zero the values near 360
+            idx = numpy.where(self.ra0 > tol)
+            self.ra0[idx] = self.ra0[idx] - 360
         else:
             self.crossRA = False
-        return 
+            
+    # # Deprecated
+    # def cross_RA_zero(self):
+    #
+    #     """
+    #     Check that we are not crossing the RA=0.0 by comparing the
+    #     distance in RA of oppostive CCDs making sure is not
+    #     greated than the DEcam width.
+    #
+    #     Alernative solutions to scanning just a few CCD images:
+    #
+    #     1) use the function drawDECam.createDECam_TANheader() to
+    #     generate a fake TAN for the image. It's quick, but if the WCS
+    #     of the image has changed a lot, might not be accurate
+    #
+    #     2) loop over all of the wcs of the images... slower (a few secs) but safer.
+    #
+    #     """
+    #
+    #     d2r = math.pi/180. # degrees to radians shorthand
+    #     DECam_width = 2.3  # approx width in degrees
+    #
+    #     # CHANGE: Hard-coded for now, should fix to more general code
+    #     # Center of chips 2048x4096
+    #     xo = 1024
+    #     yo = 4096
+    #
+    #     # Figure out the min and max RA of the image, looping trough all of them
+    #     print "# Figuring out edges of CCDs"
+    #     t0 = time.time()
+    #     ra1  =  1e10
+    #     ra2  = -1e10
+    #     dec1 =  1e10
+    #     dec2 = -1e10
+    #     for filename in self.imgfiles:
+    #
+    #     # Faster but not as safe if missing CCDs
+    #     foundRA1 = False
+    #     foundRA2 = False
+    #     foundCenter = False
+    #     t0 = time.time()
+    #     for filename in self.imgfiles:
+    #         hdr = pyfits.getheader(filename)
+    #
+    #         if hdr['CCDNUM'] == 25 or hdr['CCDNUM'] == 32 or not foundRA1:
+    #             wcs = wcsutil.WCS(hdr)
+    #             ra1,dec1 = wcs.image2sky(xo,yo)
+    #             foundRA1 = True 
+    #
+    #         if hdr['CCDNUM'] == 31 or hdr['CCDNUM'] == 38 or not foundRA2:
+    #             wcs = wcsutil.WCS(hdr)
+    #             ra2,dec2 = wcs.image2sky(xo,yo)
+    #             foundRA2 = True 
+    #
+    #         # And the center image
+    #         if hdr['CCDNUM'] == 28:
+    #             self.centerCCD = filename
+    #             foundCenter = True
+    #
+    #     if not foundRA1 or not foundRA1:
+    #         print "# Warning: could not find exposure edges"
+    #
+    #     print "# Cross RA examination: %s" % elapsed_time(t0)
+    #     dec0 = (dec1+dec2)/2.0
+    #     D    = abs(ra1-ra2)
+    #
+    #     # in case ras near 360 have negative values
+    #     # so, we need to check that both ras have the same sign
+    #     if math.copysign(1,ra1) == math.copysign(1,ra2):
+    #         same_sign = True
+    #     else:
+    #         same_sign = False
+    #
+    #     if  D > 2*DECam_width/math.cos(dec0*d2r) or same_sign is False:
+    #         self.crossRA = True
+    #         print "# *****************************************"
+    #         print "# **  WARNING: exposure crosses RA=0.0   **"
+    #         print "# *****************************************"
+    #     else:
+    #         self.crossRA = False
+    #
+    #     # Pass them up
+    #     self.ramin  = ra1
+    #     self.ramax  = ra2
+    #     self.decmin = dec1
+    #     self.decmax = dec2
+    #
+    #     return 
      
     def get_exposure_imsize_center(self):
 
         """ Get the center and size of the output projected exposure image if required """
 
-        # 1. Get the right size
+        # Get the right size
         # The default size of a projected image in the native pixscale of DECam is 31123x28149 pixels
         NX = 31123 #
         NY = 28149 # at 0.263 arcsec/pixel
         self.NX = int(NX*self.INPUT_PIXEL_SCALE/self.pixscale)
         self.NY = int(NY*self.INPUT_PIXEL_SCALE/self.pixscale)
-        # 2. Get the center in RA,Dec
-        xo = 2048+104 # 208 is the space between chips in pixels
-        yo = 2048
-        print "# Will recompute the center using %s" % self.centerCCD
-        hdr = pyfits.getheader(self.centerCCD)
-        wcs = wcsutil.WCS(hdr)         # use wcsutils
-        self.RA0,self.DEC0 = wcs.image2sky(xo,yo)
+
+        self.DEC0 = (self.dec0.min() + self.dec0.max())/2.0
+        self.RA0  = (self.ra0.min()  + self.ra0.max())/2.0
+
+        # in case we fall bellow zero
+        if self.RA0 < 0:
+            self.RA0 = self.RA0+360
+        
+        print "# RE-CENTER is:"
+        print "# RA :",self.RA0
+        print "# DEC:",self.DEC0
 
     def clean_up_weight(self):
 
