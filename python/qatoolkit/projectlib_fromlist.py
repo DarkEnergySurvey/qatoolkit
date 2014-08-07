@@ -445,7 +445,7 @@ class project_DECam_fromlist:
             print "# *****************************************"
 
             # Bring to zero the values near 360
-e            idx = numpy.where(self.ra0 > tol)
+            idx = numpy.where(self.ra0 > tol)
             self.ra0[idx] = self.ra0[idx] - 360
         else:
             self.crossRA = False
