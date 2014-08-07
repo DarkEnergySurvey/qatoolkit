@@ -3,14 +3,15 @@ from distutils.core import setup
 
 # The main call
 setup(name='qatoolkit',
-      version ='0.1.2',
+      version ='0.1.3',
       license = "GPL",
       description = "A set of handy Python utility scripts for DESDM",
-      author = "Felipe Menanteau",
+      author = "Felipe Menanteau/Robert Gruendl",
       author_email = "felipe@illinois.edu",
       packages = ['qatoolkit'],
       package_dir = {'': 'python'},
-      scripts = ['bin/color_tile',
+      scripts = ['bin/assess_SE_products.py',
+                 'bin/color_tile',
                  'bin/compare_corners_NewFramework',
                  'bin/display_DECam_MEFs',
                  'bin/display_DECam_detection_NOMAD',
