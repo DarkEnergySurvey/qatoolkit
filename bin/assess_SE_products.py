@@ -190,7 +190,6 @@ if __name__ == "__main__":
     import datetime
     import numpy
     import fitsio
-#    from numpy import *
     import matplotlib 
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt

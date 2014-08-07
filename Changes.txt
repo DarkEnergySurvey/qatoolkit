@@ -14,3 +14,24 @@
   in both projectlib.py and projectlib_fromlist.py
   to account for missing CCD31. Now it probes for CCD in oppostites
   edges of the exposure
+
+- version 0.1.3:
+
+  * projectlib_fromlist.py
+
+  fixed functions:
+    cross_RA_zero() replaced by cross_RA_zero_center()
+    get_exposure_imsize_center()
+
+    Now, heck if crossing the RA=0.0 by the min and max values for the
+    centers of all CCDs. We loop over all of the wcs of the
+    images... slower (a few secs) but safer in case some CCDs are
+    missing.  Now the the center of each CCD is computed. Also, if
+    crossing RA=0, we subtract 360 from the values near 360
+
+
+  * NEW: assess_SE_products.py : Robert's assesments script. Perfoms
+  an assessent of exposures from a first/final cut run.  The quality
+  of the exposures is based upon the seeing (FWHM), background, and
+  extinction due to clouds
+

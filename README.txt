@@ -34,7 +34,12 @@ To install:
 Scripts: (inside bin/)
 ----------------------
 
- - color_tile : generate RGB color image for a DES Tile (in the old DB
+ - assess_SE_products.py : Robert's assesments script. Perfoms an
+ assessent of exposures from a first/final cut run.  The quality of
+ the exposures is based upon the seeing (FWHM), background, and
+ extinction due to clouds
+
+ - color_tile : generates RGB color image for a DES Tile (in the old DB
  schema and file structure, it still needs to be modidied for the Refact system)
 
  - projectDECamPNG : Projects a DECam exposure using SWarp and creates
