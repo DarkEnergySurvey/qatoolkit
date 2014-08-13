@@ -195,7 +195,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     
     svnid="$Id$"
-    svnrev="$Revision: 25114 $".split(" ")[-2]
+    svnrev=svnid.split(" ")[2]
     db_table="firstcut_eval"
 
     parser = argparse.ArgumentParser(description='Assess whether the pipeline products of a FIRSTCUT/FINALCUT processing meet survey quality metrics.')
@@ -1230,6 +1230,36 @@ if __name__ == "__main__":
         exp_rec["apass_magdiff"]=99.0
         exp_rec["apass_kmagdiff"]=99.0
         exp_rec["apass_num"]=len(apass_star_set)
+        if (args.qaplot):
+#           If QA plots have been requested then output an empty QA plot that gives 
+#           information about the failure.
+            plt.figure()
+            plt.subplot(2,1,1)
+            plt.plot([10,18],[10,18],color='red',linewidth=1)
+            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
+            if (exp_rec["band"] in ["u","g"]):
+                plt.ylabel('APASS g\'')
+            elif (exp_rec["band"] == "r"):
+                plt.ylabel('APASS r\'')
+            elif (exp_rec["band"] in ["i","z","Y"]):
+                plt.ylabel('APASS i\'')
+            else:
+                plt.ylabel('APASS [unknown]')
+            plt.text(10.5,17,'Number of APASS matches: %d' % (len(apass_star_set)))
+            if (not(astrom_good)):
+                plt.text(10.5,16,'Probable failure to find an astrometric solution')
+            plt.subplot(2,1,2)
+            plt.plot([10,18],[0,0],color='red',linewidth=3)
+            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
+            if (exp_rec["band"] in ["u","g"]):
+                plt.ylabel('DES - APASS g\'')
+            elif (exp_rec["band"] == "r"):
+                plt.ylabel('DES - APASS r\'')
+            elif (exp_rec["band"] in ["i","z","Y"]):
+                plt.ylabel('DES - APASS i\'')
+            else:
+                plt.ylabel('DES - APASS [unknown]')
+            plt.savefig("%s_apass.png" % (args.froot))
     else:
 #       Workhorse case... find offset
         mag_des=[]
@@ -1321,6 +1351,36 @@ if __name__ == "__main__":
         exp_rec["nomad_magdiff"]=99.0
         exp_rec["nomad_kmagdiff"]=99.0
         exp_rec["nomad_num"]=len(nomad_star_set)
+        if (args.qaplot):
+#           If QA plots have been requested then output an empty QA plot that gives 
+#           information about the failure.
+            plt.figure()
+            plt.subplot(2,1,1)
+            plt.plot([10,18],[10,18],color='red',linewidth=1)
+            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
+            if (exp_rec["band"] in ["i","z","Y"]):
+                plt.ylabel('NOMAD J')
+            elif (exp_rec["band"] in ["u","g"]):
+                plt.ylabel('NOMAD B')
+            elif (exp_rec["band"] == "r"):
+                plt.ylabel('NOMAD [(2*B+J)/3]')
+            else:
+                plt.ylabel('NOMAD [unknown]')
+            plt.text(10.5,17,'Number of NOMAD matches: %d' % (len(nomad_star_set)))
+            if (not(astrom_good)):
+                plt.text(10.5,16,'Probable failure to find an astrometric solution')
+            plt.subplot(2,1,2)
+            plt.plot([10,18],[0,0],color='red',linewidth=3)
+            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
+            if (exp_rec["band"] in ["i","z","Y"]):
+                plt.ylabel('DES - NOMAD J')
+            elif (exp_rec["band"] in ["u","g"]):
+                plt.ylabel('DES - NOMAD B')
+            elif (exp_rec["band"] == "r"):
+                plt.ylabel('DES - NOMAD [(2*B+J)/3]')
+            else:
+                plt.ylabel('DES - NOMAD [unknown]')
+            plt.savefig("%s_nomad.png" % (args.froot))
     else:
 #       Workhorse case... find offset
         mag_des=[]
@@ -1446,9 +1506,27 @@ if __name__ == "__main__":
     if (len(mag)<10):
 #
 #       If insufficient data is present to even begin to try then simply report faulure 
-#       move along
+#       move along.  
 #
         mag_thresh=99.9
+        if (args.qaplot):   
+#           If QA plots were requested then write a dummy plot that indicates failure
+            plt.figure()
+            plt.subplot(2,1,1)
+#           plt.scatter(xplt,yplt1,marker='.',color='blue')
+            plt.axis([8,26,0.5,10000])
+#            plt.semilogy(xplt,yplt1,marker='.',ls='None',color='blue')
+            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
+            plt.ylabel('# objects')
+            plt.text(9.,9000.,'Number of objects insufficient for histogram: %d' % (len(mag)))
+            if (not(astrom_good)):
+                plt.text(9.,7800,'Probable failure to find an astrometric solution')
+            plt.subplot(2,1,2)
+#            plt.scatter(xplt,yplt2,marker='.',color='blue')
+            plt.axis([8,26,-0.01,0.5])
+            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
+            plt.ylabel('median(magerr_auto)')
+            plt.savefig("%s_magplot.png" % (args.froot))
     else:
 #
 #       Sort the resuling mag and magerr based on mag... (sort indexes then apply)
