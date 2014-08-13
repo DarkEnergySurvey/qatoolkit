@@ -725,16 +725,19 @@ if __name__ == "__main__":
         if (num_ast_recs > 1):
             print "# WARNING: multiple exposure records found for this exposure? (num_ast_recs=",num_ast_recs,")"
         if (item[coldict["q.astromndets_ref_highsn"]] is None):
+            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromndets_ref_highsn"
             astrom_good=False
             exp_rec["astrom_ndets"]=-1
         else:
             exp_rec["astrom_ndets"]=int(item[coldict["q.astromndets_ref_highsn"]])
         if (item[coldict["q.astromchi2_ref_highsn"]] is None):
+            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromchi2_ref_highsn"
             astrom_good=False
             exp_rec["astrom_chi2"]=-1.0
         else:
             exp_rec["astrom_chi2"]=float(item[coldict["q.astromchi2_ref_highsn"]])
         if (item[coldict["q.astromsigma_ref_highsn_1"]] is None):
+            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromsigma_ref_highsn_1"
             astrom_good=False
             exp_rec["astrom_sig1"]=-1.0
             sigx=-1.0
@@ -742,6 +745,7 @@ if __name__ == "__main__":
             exp_rec["astrom_sig1"]=float(item[coldict["q.astromsigma_ref_highsn_1"]])
             sigx=float(item[coldict["q.astromsigma_ref_highsn_1"]])
         if (item[coldict["q.astromsigma_ref_highsn_2"]] is None):
+            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromsigma_ref_highsn_2"
             astrom_good=False
             exp_rec["astrom_sig2"]=-1.0
             sigy=-1.0
@@ -749,19 +753,31 @@ if __name__ == "__main__":
             exp_rec["astrom_sig2"]=float(item[coldict["q.astromsigma_ref_highsn_2"]])
             sigy=float(item[coldict["q.astromsigma_ref_highsn_2"]])
         if (item[coldict["q.astromoffset_ref_highsn_1"]] is None):
+            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromoffset_ref_highsn_1"
             astrom_good=False
             exp_rec["astrom_off1"]=-1.0
         else:
             exp_rec["astrom_off1"]=float(item[coldict["q.astromoffset_ref_highsn_1"]])
-        if (item[coldict["q.astromoffset_ref_highsn_1"]] is None):
+        if (item[coldict["q.astromoffset_ref_highsn_2"]] is None):
+            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromoffset_ref_highsn_2"
             astrom_good=False
             exp_rec["astrom_off2"]=-1.0
         else:
             exp_rec["astrom_off2"]=float(item[coldict["q.astromoffset_ref_highsn_2"]])
         exp_rec["astrom_rms2"]=numpy.sqrt((sigx*sigx)+(sigy*sigy))
 
+    if ((exp_rec["astrom_sig1"] < 0.0001)or(exp_rec["astro_sig2"] < 0.0001)):
+        print("# WARNING: Probable astrometric solution failure: astrom_sig1,2 = {:7.4f},{:7.4f}".format(exp_rec["astrom_sig1"],exp_rec["astrom_sig2"]))
+        astrom_good=False
+    if (exp_rec["astrom_rms2"] > 0.500):
+        print("# WARNING: Probable astrometric solution failure: astrom_rms2 = {:.3f}".format(exp_rec["astrom_rms2"]))
+        astrom_good=False
+
     print "########################################"
-    print "########################################"
+    if (astrom_good):
+        print "# Astrometric solution appears OK "
+    else:
+        print "# WARNING: Probable astrometric solution failure"
     print "########################################"
 
 ################################################
@@ -1603,7 +1619,7 @@ if __name__ == "__main__":
 #
 
     new_decide="none"
-    if (exp_rec["teff"]<0.):
+    if ((exp_rec["teff"]<0.)or(exp_rec["teff_c"]<0.0)):
         new_decide="unkn"
     elif (exp_rec["teff"]>teff_lim[exp_rec["band"]]):
         new_decide="good"
