@@ -35,3 +35,8 @@
   of the exposures is based upon the seeing (FWHM), background, and
   extinction due to clouds
 
+- version 0.1.4:
+  
+  assess_SE_products.py: update to behaviour when an astrometric
+  solution is not found.
+
