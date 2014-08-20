@@ -40,3 +40,10 @@
   assess_SE_products.py: update to behaviour when an astrometric
   solution is not found.
 
+- version 0.1.5:
+  assess_SE_products.py: added import math to main code.
+
+
+- version 0.1.6:
+  assess_SE_products.py:  fixed bug exp_rec["astro_sig2"] -->  exp_rec["astrom_sig2"]
+

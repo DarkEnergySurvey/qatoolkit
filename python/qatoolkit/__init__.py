@@ -1,5 +1,5 @@
 __author__  = "Felipe Menanteau"
-__version__ = '0.1.4'
+__version__ = '0.1.6'
 version = __version__
 
 """
