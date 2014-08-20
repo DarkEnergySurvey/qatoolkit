@@ -767,7 +767,7 @@ if __name__ == "__main__":
             exp_rec["astrom_off2"]=float(item[coldict["q.astromoffset_ref_highsn_2"]])
         exp_rec["astrom_rms2"]=numpy.sqrt((sigx*sigx)+(sigy*sigy))
 
-    if ((exp_rec["astrom_sig1"] < 0.0001)or(exp_rec["astro_sig2"] < 0.0001)):
+    if ((exp_rec["astrom_sig1"] < 0.0001)or(exp_rec["astrom_sig2"] < 0.0001)):
         print("# WARNING: Probable astrometric solution failure: astrom_sig1,2 = {:7.4f},{:7.4f}".format(exp_rec["astrom_sig1"],exp_rec["astrom_sig2"]))
         astrom_good=False
     if (exp_rec["astrom_rms2"] > 0.500):
