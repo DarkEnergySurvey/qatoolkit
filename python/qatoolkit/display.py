@@ -238,7 +238,9 @@ def get_sci_hdu(fitsFile):
                 sci_hdr = h.copy()
 
     if (sci_hdu is None):
-        sys.exit("Cannot find IMAGE extensions via DES_EXT keyword in header")
+        sci_hdu = 0
+        sci_hdr = FITS[0].header.copy()
+        print "# WARNING: Cannot find IMAGE extensions via DES_EXT keyword in header, defaulting to 0"
 
     FITS.close()
     return sci_hdu,sci_hdr

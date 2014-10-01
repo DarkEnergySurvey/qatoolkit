@@ -414,6 +414,8 @@ class project_DECam_fromlist:
             ra,dec = wcs.image2sky(nx/2.0,ny/2.0)
             ra0.append(ra)
             dec0.append(dec)
+            print filename, ra,dec
+
 
         self.ra0  = numpy.array(ra0)
         self.dec0 = numpy.array(dec0)
@@ -424,9 +426,12 @@ class project_DECam_fromlist:
         ra1  = self.ra0.min()
         ra2  = self.ra0.max()
 
+        print "ra1,ra2",ra1,ra2
+
         print "# Cross RA examination: %s" % elapsed_time(t0)
         dec0 = (dec1+dec2)/2.0
-        D  = abs(ra1-ra2)
+        D_ra  = abs(ra1 -ra2)
+        D_dec = abs(dec1-dec2)
 
         # in case ras near 360 have negative values
         # so, we need to check that both ras have the same sign
@@ -435,17 +440,26 @@ class project_DECam_fromlist:
         else:
             same_sign = False
 
+        # Check WCS solution is sane, by making sure that the distance
+        # between ra.min and ra.max or dec.min/dec.max in D > tol and
+        # D < 360-tol (for RA)
+        if (D_ra > tol_ra and D_ra < 360 - tol_ra) or D_dec > tol_dec:
+            print "# ***************************************************************"
+            print "# **  WARNING: Distance between CCDs greated that DECam FOV    **"
+            print "# **  WARNING: Projection will not be performed                **"
+            print "# ***************************************************************"
+            sys.exit()
+
         # The tolerace for deciding when we crossed RA=0 is ~2x a
         # DECam FOV at the declination
-        tol = 2*DECam_width/math.cos(dec0*d2r)
-        if  D > tol or same_sign is False:
+        if  D_ra > tol_ra or same_sign is False:
             self.crossRA = True
             print "# *****************************************"
             print "# **  WARNING: exposure crosses RA=0.0   **"
             print "# *****************************************"
 
             # Bring to zero the values near 360
-            idx = numpy.where(self.ra0 > tol)
+            idx = numpy.where(self.ra0 > tol_ra)
             self.ra0[idx] = self.ra0[idx] - 360
         else:
             self.crossRA = False
@@ -552,6 +566,7 @@ class project_DECam_fromlist:
         self.DEC0 = (self.dec0.min() + self.dec0.max())/2.0
         self.RA0  = (self.ra0.min()  + self.ra0.max())/2.0
 
+
         # in case we fall bellow zero
         if self.RA0 < 0:
             self.RA0 = self.RA0+360
@@ -559,6 +574,12 @@ class project_DECam_fromlist:
         print "# RE-CENTER is:"
         print "# RA :",self.RA0
         print "# DEC:",self.DEC0
+
+        print self.ra0.min(),self.ra0.max() 
+        print self.dec0.min(), self.dec0.max()  
+
+        sys.exit()
+
 
     def clean_up_weight(self):
 
