@@ -1,9 +1,9 @@
 # Python modules
 # despyutils loads: python, numpy, matplotlib and pyfits
-setupRequired("despyutils 0.1.8+7") 
+setupRequired("despyutils 0.1.8+13") 
 
 # We need fwsplit from coreutils.miscutils 
-#setupRequired("CoreUtils 0.8.4+2") 
+#setupRequired("CoreUtils 1.0.0+2") 
 
 # pil 1.1.7+9 is compatible with libjpeg 8d+0 for tiff and stiff
 setupRequired("pil 1.1.7+9")    
@@ -18,7 +18,7 @@ setupRequired("cfitsio 3.360+4")
 
 # ds9 and xpa
 setupRequired("ds9 7.2+0")    # revise version
-setupRequired("xpa 2.1.14+2") # revise version
+setupRequired("xpa 2.1.14+3") # revise version
 
 envAppend(PATH, ${PRODUCT_DIR}/bin)
 envAppend(PYTHONPATH, ${PRODUCT_DIR}/python/)
