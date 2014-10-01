@@ -414,8 +414,6 @@ class project_DECam_fromlist:
             ra,dec = wcs.image2sky(nx/2.0,ny/2.0)
             ra0.append(ra)
             dec0.append(dec)
-            print filename, ra,dec
-
 
         self.ra0  = numpy.array(ra0)
         self.dec0 = numpy.array(dec0)
@@ -425,8 +423,6 @@ class project_DECam_fromlist:
         dec2 = self.dec0.max()
         ra1  = self.ra0.min()
         ra2  = self.ra0.max()
-
-        print "ra1,ra2",ra1,ra2
 
         print "# Cross RA examination: %s" % elapsed_time(t0)
         dec0 = (dec1+dec2)/2.0
@@ -440,6 +436,10 @@ class project_DECam_fromlist:
         else:
             same_sign = False
 
+        # Define the tolerances for ra/dec
+        tol_ra  = 2.5*DECam_width/math.cos(dec0*d2r)
+        tol_dec = 2.5*DECam_width
+        
         # Check WCS solution is sane, by making sure that the distance
         # between ra.min and ra.max or dec.min/dec.max in D > tol and
         # D < 360-tol (for RA)
@@ -574,12 +574,8 @@ class project_DECam_fromlist:
         print "# RE-CENTER is:"
         print "# RA :",self.RA0
         print "# DEC:",self.DEC0
-
-        print self.ra0.min(),self.ra0.max() 
-        print self.dec0.min(), self.dec0.max()  
-
-        sys.exit()
-
+        print "# ra_min,  ra_max:  %s,%s [degrees]" % (self.ra0.min(),self.ra0.max())
+        print "# dec_min, dec_max: %s,%s [degrees]" % (self.dec0.min(), self.dec0.max())
 
     def clean_up_weight(self):
 
