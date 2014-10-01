@@ -446,7 +446,7 @@ class project_DECam_fromlist:
         if (D_ra > tol_ra and D_ra < 360 - tol_ra) or D_dec > tol_dec:
             print "# ***************************************************************"
             print "# **  WARNING: Distance between CCDs greated that DECam FOV    **"
-            print "# **  WARNING: Projection will not be performed                **"
+            print "# **  WARNING: Projection will not be performed -- bye         **"
             print "# ***************************************************************"
             sys.exit()
 
