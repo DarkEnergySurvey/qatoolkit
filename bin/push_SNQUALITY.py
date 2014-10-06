@@ -93,6 +93,11 @@ if __name__ == "__main__":
         use_DB_file=True
 
 #
+#   Assessment to quality conversion
+#
+    AcceptVsQual={'True': 2, 'False': 1, 'Unknown': 0}
+
+#
 #   Setup database connection information based on services file.
 #
     try:
@@ -169,7 +174,7 @@ if __name__ == "__main__":
             ex_restrict_date=" and e.nite=%s" % (args.night)
             
 
-        queryitems = ["sq.expnum"]
+        queryitems = ["sq.expnum","sq.snqual"]
         coldict={}
         for index, item in enumerate(queryitems):
             coldict[item]=index
@@ -181,29 +186,38 @@ if __name__ == "__main__":
         cur.execute(query)
 
         snqual_expnum=[]
+        snqual_state={}
         for item in cur:
             snqual_expnum.append(int(item[coldict["sq.expnum"]]))
+            snqual_state[int(item[coldict["sq.expnum"]])]=int(item[coldict["sq.snqual"]])
 
-        queryitems = ["f.expnum"] 
+        queryitems = ["f.expnum","f.accepted"] 
         coldict={}
         for index, item in enumerate(queryitems):
             coldict[item]=index
         querylist = ",".join(queryitems)
-        query = """select %s from %s%s f, %sexposure e where f.program='supernova' and f.analyst='SNQUALITY' and f.exposurename=e.filename %s """ % ( querylist, db_Schema, db_table, db_Schema, ex_restrict_date )
+        query = """select %s from %s%s f, %sexposure e where f.program='supernova' and f.analyst='SNQUALITY' and f.exposurename=e.filename %s order by f.lastchanged_time """ % ( querylist, db_Schema, db_table, db_Schema, ex_restrict_date )
         if args.verbose:
             print query
         cur.arraysize = 1000 # get 1000 at a time when fetching
         cur.execute(query)
 
         firstcut_eval_expnum=[]
+        firstcut_eval_state={}
         for item in cur:
             firstcut_eval_expnum.append(int(item[coldict["f.expnum"]]))
+            firstcut_eval_state[int(item[coldict["f.expnum"]])]=AcceptVsQual[item[coldict["f.accepted"]]]
 
         for expnum in snqual_expnum:
             if (expnum not in firstcut_eval_expnum):
                 prelim_expnum_list.append(int(expnum))
             else:
-                check_expnum_for_change.append(int(expnum))
+                if (not(firstcut_eval_state[expnum] == snqual_state[expnum])):
+                    print "Found previous entry was different for ",expnum
+                    prelim_expnum_list.append(int(expnum))
+#                check_expnum_for_change.append(int(expnum))
+#                else:
+#                    print "Found previous was same for ",expnum
 
     uniq_prelim=sorted(list(set(prelim_expnum_list)))
     prelim_expnum_list=uniq_prelim
