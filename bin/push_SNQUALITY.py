@@ -95,7 +95,9 @@ if __name__ == "__main__":
 #
 #   Assessment to quality conversion
 #
-    AcceptVsQual={'True': 2, 'False': 1, 'Unknown': 0}
+    AssessVsQual={'True': 2, 'False': 1, 'Unknown': 0}
+    AssessAsInt={2: 'True', 1: 'False', 0: 'Unknown'}
+    SNQualAsInt={2: 'Good', 1: 'Bad', 0: 'Unknown'}
 
 #
 #   Setup database connection information based on services file.
@@ -191,7 +193,7 @@ if __name__ == "__main__":
             snqual_expnum.append(int(item[coldict["sq.expnum"]]))
             snqual_state[int(item[coldict["sq.expnum"]])]=int(item[coldict["sq.snqual"]])
 
-        queryitems = ["f.expnum","f.accepted"] 
+        queryitems = ["f.expnum","f.accepted","f.analyst_comment"] 
         coldict={}
         for index, item in enumerate(queryitems):
             coldict[item]=index
@@ -204,16 +206,18 @@ if __name__ == "__main__":
 
         firstcut_eval_expnum=[]
         firstcut_eval_state={}
+        firstcut_eval_field={}
         for item in cur:
             firstcut_eval_expnum.append(int(item[coldict["f.expnum"]]))
-            firstcut_eval_state[int(item[coldict["f.expnum"]])]=AcceptVsQual[item[coldict["f.accepted"]]]
+            firstcut_eval_state[int(item[coldict["f.expnum"]])]=AssessVsQual[item[coldict["f.accepted"]]]
+            firstcut_eval_field[int(item[coldict["f.expnum"]])]=item[coldict["f.analyst_comment"]]
 
         for expnum in snqual_expnum:
             if (expnum not in firstcut_eval_expnum):
                 prelim_expnum_list.append(int(expnum))
             else:
                 if (not(firstcut_eval_state[expnum] == snqual_state[expnum])):
-                    print "Found previous entry was different for ",expnum
+                    print("Found previous SNQUALITY entry ({:s}) different from FIRSTCUT_EVAL({:s}) for expnum={:d} ({:s})".format(SNQualAsInt[snqual_state[expnum]],AssessAsInt[firstcut_eval_state[expnum]],expnum,firstcut_eval_field[expnum]))
                     prelim_expnum_list.append(int(expnum))
 #                check_expnum_for_change.append(int(expnum))
 #                else:
