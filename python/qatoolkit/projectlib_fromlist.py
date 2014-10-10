@@ -242,7 +242,7 @@ class project_DECam_fromlist:
         # Very Explicit Call to stiff
         opts = ''
         opts = opts + " -IMAGE_TYPE   TIFF"        # Output image format
-        opts = opts + " -COMPRESSION_TYPE LZW"     # Compression type
+        opts = opts + " -COMPRESSION_TYPE JPEG"     # Compression type
         opts = opts + " -BINNING      1"           # Binning factor for the data
         opts = opts + " -GAMMA        2.2"         # Display gamma
         opts = opts + " -GAMMA_FAC    1.0"         # Luminance gamma correction factor
