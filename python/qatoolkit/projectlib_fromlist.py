@@ -241,6 +241,14 @@ class project_DECam_fromlist:
 
         # Very Explicit Call to stiff
         opts = ''
+
+        # CHANGE: This only work if we use eups, might want more general solution
+        try:
+            print "# Loading configuration via QATOOLKIT_DIR evironment variable"
+            opts = opts + " -c  %s/etc/default.stiff" % os.environ['QATOOLKIT_DIR']
+        except:
+            sys.exit("# ERROR: could not define files via QATOOLKIT_DIR evironment variable")
+
         opts = opts + " -IMAGE_TYPE   TIFF"        # Output image format
         opts = opts + " -COMPRESSION_TYPE JPEG"     # Compression type
         opts = opts + " -BINNING      1"           # Binning factor for the data
