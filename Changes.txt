@@ -51,4 +51,4 @@
   . changes in python/qatoolkit/projectlib_fromlist.py, now we use
   "COMPRESSION_TYPE JPEG" for stiff
   . stiff now uses explicilty the configuation in etc/defaut.stiff
-  		    
+  . More robust way to handle when the photometry goes crazy.
