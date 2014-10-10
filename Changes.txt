@@ -47,3 +47,8 @@
 - version 0.1.6:
   assess_SE_products.py:  fixed bug exp_rec["astro_sig2"] -->  exp_rec["astrom_sig2"]
 
+- version 0.1.7:
+  . changes in python/qatoolkit/projectlib_fromlist.py, now we use
+  "COMPRESSION_TYPE JPEG" for stiff
+  . stiff now uses explicilty the configuation in etc/defaut.stiff
+  		    
