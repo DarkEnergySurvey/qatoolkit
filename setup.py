@@ -3,7 +3,7 @@ from distutils.core import setup
 
 # The main call
 setup(name='qatoolkit',
-      version ='0.1.6',
+      version ='0.1.7',
       license = "GPL",
       description = "A set of handy Python utility scripts for DESDM",
       author = "Felipe Menanteau/Robert Gruendl",
