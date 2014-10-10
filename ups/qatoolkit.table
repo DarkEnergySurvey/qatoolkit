@@ -7,7 +7,7 @@ setupRequired("despyutils 0.1.8+13")
 
 # pil 1.1.7+9 is compatible with libjpeg 8d+0 for tiff and stiff
 setupRequired("pil 1.1.7+9")    
-setupRequired("fitsio 0.9.5.1rc1+2") 
+setupRequired("fitsio 0.9.5.1rc1+5") 
 
 # Bertin's code
 setupRequired("stiff 2.1.3+1")
