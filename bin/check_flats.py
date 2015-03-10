@@ -16,12 +16,12 @@ EXPOSURE_TEL_QA_Y2 : Several parameters from telescope written in the header of 
   Needs to setup the following before running:
   python
   pyfits
-  coreutils
+  despydb
   numpy
 
 """
 # imports
-import coreutils.desdbi
+import despydb.desdbi
 import cx_Oracle
 import argparse
 import os
@@ -75,7 +75,7 @@ def connectDB(dbase):
     except KeyError:
         desdmfile  = None
 
-    dbh = coreutils.desdbi.DesDbi(desdmfile,dbase)
+    dbh = despydb.desdbi.DesDbi(desdmfile,dbase)
         
     return dbh
 

@@ -9,7 +9,7 @@ Felipe Menanteau, June 2014
 
 import os
 from qatoolkit import focuschips as focus
-import coreutils.desdbi
+import despydb.desdbi
 
 # Get the command line options
 opt,arg = focus.cmdline_SQL()
@@ -23,7 +23,7 @@ try:
     desdmfile = os.environ["des_services"]
 except KeyError:
     desdmfile = None
-dbh = coreutils.desdbi.DesDbi(desdmfile,section)
+dbh = despydb.desdbi.DesDbi(desdmfile,section)
 cur = dbh.cursor()
 
 #####################################################################

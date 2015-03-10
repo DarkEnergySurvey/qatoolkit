@@ -37,9 +37,9 @@ import matplotlib
 matplotlib.use('Agg')
 import pylab
 from PIL import Image
-import coreutils.desdbi
-from despyutils import wcsutil
-from despyutils import drawDECam as draw # to use ellipses
+import despydb.desdbi
+from despyastro import wcsutil
+from drawDECam import drawDECam as draw # to use ellipses
 
 sout = sys.stdout
 
@@ -122,7 +122,7 @@ class project_DECam:
             desdmfile = os.environ["des_services"]
         except KeyError:
             desdmfile = None
-        self.dbh = coreutils.desdbi.DesDbi(desdmfile,section)
+        self.dbh = despydb.desdbi.DesDbi(desdmfile,section)
 
     def query_desar_project(self):
 

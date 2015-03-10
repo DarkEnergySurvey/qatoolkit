@@ -181,7 +181,7 @@ if __name__ == "__main__":
 
     import argparse
     import os
-    import coreutils.desdbi
+    import despydb.desdbi
     import stat
     import time
     import math
@@ -251,14 +251,14 @@ if __name__ == "__main__":
         analyst=args.analyst
 
 #
-#   Setup for database interactions (through coreutils)
+#   Setup for database interactions (through despydb)
 #
 
     try:
         desdmfile = os.environ["des_services"]
     except KeyError:
         desdmfile = None
-    dbh = coreutils.desdbi.DesDbi(desdmfile,args.section)
+    dbh = despydb.desdbi.DesDbi(desdmfile,args.section)
     cur = dbh.cursor()
 
 #################################################

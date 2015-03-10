@@ -8,19 +8,19 @@ Felipe Menanteau, NCSA.
 Requires:
  depyutils 
  pyfits
- CoreUtils
+ Despydb
 
 Make sure to load:
- setup despyutils
+ setup despyastro
  setup pyfits
- setup CoreUtils
+ setup Despydb
 
 """
 
 import os,sys
-from despyutils import wcsutil
+from despyastro import wcsutil
 from pyfits import getheader
-import coreutils.desdbi
+import despydb.desdbi
 
 def cornersFile(fitsFile):
 
@@ -69,7 +69,7 @@ def findFilename(filename,section_destest="db-destest"):
         desdmfile = os.environ["des_services"]
     except KeyError:
         desdmfile = None
-    dbh = coreutils.desdbi.DesDbi(desdmfile,section_destest)
+    dbh = despydb.desdbi.DesDbi(desdmfile,section_destest)
     cur = dbh.cursor()
 
     # Root location -- Change when all soft-links exit
@@ -95,7 +95,7 @@ def cornersDB(filename):
         desdmfile = os.environ["des_services"]
     except KeyError:
         desdmfile = None
-    dbh = coreutils.desdbi.DesDbi(desdmfile,section_destest)
+    dbh = despydb.desdbi.DesDbi(desdmfile,section_destest)
     cur = dbh.cursor()
     
     # Get the corners from DB
