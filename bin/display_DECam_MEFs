@@ -5,8 +5,7 @@ from qatoolkit import ds9DES as ds9
 
 """
  A very very simple stand-alone script to display DECam mef fits
- files. It uses a lot of functions from my ds9.py module, which are
- available via despyutils
+ files. It uses a lot of functions from my ds9.py module.
 
  It needs:
   - python

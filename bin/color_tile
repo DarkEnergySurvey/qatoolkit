@@ -20,7 +20,7 @@ sout = sys.stdout
 
 # External modules that need to be declared in eups
 import pyfits
-import coreutils.desdbi
+import despydb.desdbi
 import PIL
 from PIL import Image
 from PIL import PngImagePlugin
@@ -55,7 +55,7 @@ class technicolor:
             desdmfile = os.environ["des_services"]
         except KeyError:
             desdmfile = None
-        self.dbh = coreutils.desdbi.DesDbi(desdmfile,section)
+        self.dbh = despydb.desdbi.DesDbi(desdmfile,section)
 
         # Get the tilenames for the version and run names
         self.query_desar_tilenames()

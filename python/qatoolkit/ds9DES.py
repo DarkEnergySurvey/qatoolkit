@@ -1,7 +1,7 @@
 import os,sys
 import string,popen2,re
 import math
-from despyutils import tableio
+from despyastro import tableio
 
 """
  Provides a colecction of tools to interact with ds9 from python using xpa.
