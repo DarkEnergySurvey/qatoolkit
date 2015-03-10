@@ -22,8 +22,8 @@ setupRequired(swarp 2.36.2+2)
 setupRequired(cfitsio 3.370+0)
 
 # ds9 and xpa
-setupRequired(ds9 7.2+0)    # revise version
-setupRequired(xpa 2.1.14+3) # revise version
+setupRequired(ds9 7.2+1)    
+setupRequired(xpa 2.1.14+3) 
 
 envAppend(PATH, ${PRODUCT_DIR}/bin)
 envAppend(PYTHONPATH, ${PRODUCT_DIR}/python/)
