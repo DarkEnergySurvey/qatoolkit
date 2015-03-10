@@ -52,3 +52,10 @@
   "COMPRESSION_TYPE JPEG" for stiff
   . stiff now uses explicilty the configuation in etc/defaut.stiff
   . More robust way to handle when the photometry goes crazy.
+
+- version 0.1.8:
+  . removed depencendies on coreutils (now despydb) and despyutils
+  (depydb and others).
+  . Two pieces of code added by Ricardo C.
+     - check_flats.py
+     - flats_analysis.py

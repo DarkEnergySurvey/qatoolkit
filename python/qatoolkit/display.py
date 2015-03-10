@@ -4,8 +4,8 @@ import os,sys
 import pyfits
 import fitsio
 import time
-from despyutils import wcsutil
-import coreutils.desdbi
+from despyastro import wcsutil
+import despydb.desdbi
 import numpy
 # From here
 import ds9DES as ds9
@@ -158,7 +158,7 @@ class DisplayDES:
             desdmfile = os.environ["des_services"]
         except KeyError:
             desdmfile = None
-        dbh = coreutils.desdbi.DesDbi(desdmfile,section)
+        dbh = despydb.desdbi.DesDbi(desdmfile,section)
         cur = dbh.cursor()
 
         query = """
