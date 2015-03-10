@@ -2,10 +2,10 @@
 setupRequired(despyastro 0.3.0+3) 
 
 # To draw DECam shapes -- loads matplotlib
-setupRequired(drawDEcam 0.1.0+0) 
+setupRequired(drawDECam 0.1.0+0) 
 
 # DB access
-setupRequired(desydb 2.0.0+2) 
+setupRequired(despydb 2.0.0+2) 
 
 # Pyfits
 setupRequired(pyfits 3.3+2)
