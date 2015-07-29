@@ -185,6 +185,7 @@ if __name__ == "__main__":
     import stat
     import time
     import math
+    import bisect
     import re
     import csv
     import sys
@@ -211,28 +212,25 @@ if __name__ == "__main__":
                         help='Provides value for analyst (default: assess_RUN_v%s, \"None\" will use os.getlogin())'%(svnrev))
     parser.add_argument('-c', '--csv',      action='store_true', default=False, help='Flag for optional output of CSV')
     parser.add_argument('-u', '--updateDB', action='store_true', default=False, help='Flag for program to DIRECTLY update DB (%s).' % (db_table) )
+    parser.add_argument('--over_table',     action='store', type=str, default=None, help='Override output DB table with specified table')
     parser.add_argument('-D', '--DB_file',  action='store_true', default=False, help='Flag for optional output of DB update file')
     parser.add_argument('-f', '--froot',    action='store',      default=None, help='Root for output file names')
 #    parser.add_argument('-M', '--Magout',   action='store_true', default=False,
 #                         help='Flag to dump file containing raw data summarizing number of objects per magnitude bin.')
     parser.add_argument('-q', '--qaplot',   action='store_true', default=False, help='Flag to generate QA plots.')
     parser.add_argument('-d', '--delimiter', action='store',  default=',', help='Optional delimiter for CSV (default=,)')
-
-#    parser.add_argument('-Q', '--Quiet',   action='store_true', default=False, help='Flag to run as silently as possible')
     parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra (debug) messages to stdout')
     parser.add_argument('-s', '--section', action='store', type=str, default=None, help='section of .desservices file with connection info')
+    parser.add_argument('-S', '--Schema', action='store', type=str, default=None, help='Schema')
+
     args = parser.parse_args()
     if (args.verbose):
         print "##### Initial arguments #####"
         print "Args: ",args
 
 #   Some old flags/arguemnts almost ready to remove completely...
-#    parser.add_option("-r", "--run", dest="run", default=None,
-#                         help="Run number to search.")
 ##    parser.add_option("-m", "--maglimit", action="store_true", dest="maglimit", default=Fals,
 ##                         help="Flag to include magnitude limit calculation.")
-#    parser.add_option("-e", "--expnum", dest="expnum", default=None, 
-#                         help="Restrict assessment to an exposure number (or comma delimited list of exposure numbers)")
 ##############################################################################
 #   Arguments are defined... some extra checks before we begin.
     if ((args.ReqNum is None)or(args.UnitName is None)or(args.AttNum is None)):
@@ -242,6 +240,36 @@ if __name__ == "__main__":
     UnitName=args.UnitName
     AttNum=args.AttNum
 
+    print("####################################################")
+    print("# Note this execution requests:")
+    print("# ")
+    print("# Evaluation of REQNUM={:s}  ".format(ReqNum))
+    print("#             UNITNAME={:s}  ".format(UnitName))
+    print("#               ATTNUM={:s}  ".format(AttNum))
+    print("# ")
+#
+#   Obtain Schema (if user specified).
+#
+    if (args.Schema is None):
+        db_Schema=""
+    else:
+        db_Schema="%s." % (args.Schema)
+
+    if (args.over_table is None):
+        db_table='%s%s' % (db_Schema,db_table)
+    else:
+        if (len(args.over_table.split('.')) > 1):
+            db_table=args.over_table
+        else:
+            db_table='%s%s' % (db_Schema,args.over_table)
+
+    if (args.updateDB):
+        print("# DB WRITE evaluation to: {:s}".format(db_table))
+    if (args.DB_file):
+        print("# File WRITE evaluation to {:s}.dbupdate as though for DB table {:s}".format(args.froot,db_table))
+    else:
+        print("# WRITE summary evaluation to STDOUT")
+
 #
 #   Automatically get analyst name (from os.getlogin()) unless an override value has been specified
 #
@@ -249,6 +277,12 @@ if __name__ == "__main__":
         analyst=os.getlogin()
     else:
         analyst=args.analyst
+    print("# Using Analyst: {:s}".format(analyst))
+    print("# ")
+    if (args.qaplot):
+        print("# QA Plots requested (with filename root {:s}".format(args.froot))
+        print("# ")
+
 
 #
 #   Setup for database interactions (through despydb)
@@ -395,6 +429,8 @@ if __name__ == "__main__":
     kterm[4]=0.053
     kterm[5]=0.05
 
+    print("####################################################")
+    print("# Initialized. ")
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -414,13 +450,16 @@ if __name__ == "__main__":
         for index, item in enumerate(queryitems):
             coldict[item]=index
         querylist = ",".join(queryitems)
-        query = """select %s from wgb, task, file_archive_info fai, ops_archive oa, catalog c where wgb.exec_task_id=task.id and wgb.reqnum=%s and wgb.unitname='%s' and wgb.attnum=%s and wgb.filetype='cat_finalcut' and fai.filename=wgb.filename and c.filename=wgb.filename and oa.name=fai.archive_name order by task.start_time """ % (querylist,ReqNum,UnitName,AttNum)
+        query = """select %s from %swgb wgb, %stask task, %sfile_archive_info fai, %sops_archive oa, %scatalog c where wgb.task_id=task.id and wgb.reqnum=%s and wgb.unitname='%s' and wgb.attnum=%s and wgb.filetype='cat_finalcut' and fai.filename=wgb.filename and c.filename=wgb.filename and oa.name=fai.archive_name order by task.start_time """ % (querylist,db_Schema,db_Schema,db_Schema,db_Schema,db_Schema,ReqNum,UnitName,AttNum)
+
+        print "# Executing initial query for catalogs "
         if args.verbose:
-            print "##### Initial query for catalogs #####"
-            print query
+            print("# {:s}".format(query))
         cur.arraysize = 1000 # get 1000 at a time when fetching
         cur.execute(query)
-
+#        desc = [d[0].lower() for d in cur.description]
+#        print desc
+ 
         for item in cur:
             if (item[coldict["task.status"]]==0):
                 cat_fname.append(item[coldict["wgb.filename"]])
@@ -429,6 +468,7 @@ if __name__ == "__main__":
 #
 #       Open list file and proceed.
 #
+        print "# Using list of files/catalogs to obtain objects from exposure"
         if (os.path.isfile(args.list)):
             f_cat=open(args.list,'r')
             for line in f_cat:
@@ -440,7 +480,7 @@ if __name__ == "__main__":
                     cat_fpath.append(columns[0])
 #                   print columns[0]
             f_cat.close()
-    print "Total number of catalogs/CCDs identified: ",len(cat_fpath)
+    print "# Total number of catalogs/CCDs identified: ",len(cat_fpath)
 ##############################################################################
 #   Now that a starting point has been established...
 #   Obtain associated DB information for each catalog/CCD.
@@ -452,11 +492,14 @@ if __name__ == "__main__":
     querylist = ",".join(queryitems)
 
     ccd_info={}
+    num_ccd_verbose=0
+    max_ccd_verbose=1
+    print "# Executing query(s) to obtain image level metadata and QA values "
     for index,tmp_fname in enumerate(cat_fname):
-        query = """select %s from image i, wdf where i.filename=wdf.parent_name and wdf.child_name='%s' """ % (querylist,cat_fname[index])
-        if args.verbose:
-            print "##### Query to obtain image level metadata and QA values #####"
-            print query
+        query = """select %s from %simage i, %swdf wdf where i.filename=wdf.parent_name and wdf.child_name='%s' """ % (querylist,db_Schema,db_Schema,cat_fname[index])
+        if ((args.verbose)and(num_ccd_verbose < max_ccd_verbose)):
+            print("# {:s}".format(query))
+            num_ccd_verbose=num_ccd_verbose+1
         cur.arraysize = 1000 # get 1000 at a time when fetching
         cur.execute(query)
 
@@ -639,11 +682,11 @@ if __name__ == "__main__":
     for index, item in enumerate(queryitems):
          coldict[item]=index
 
-    query = """select %s from exposure e where e.expnum=%s """ % ( querylist, exp_rec['expnum'] )
+    query = """select %s from %sexposure e where e.expnum=%s """ % ( querylist, db_Schema, exp_rec['expnum'] )
 
+    print "# Executing query to obtain exposure level metadata"
     if args.verbose:
-        print "#Exposure level query for metadata"
-        print query
+        print("# {:s}".format(query))
     cur.arraysize = 1000 # get 1000 at a time when fetching
     cur.execute(query)
 
@@ -712,10 +755,10 @@ if __name__ == "__main__":
     for index, item in enumerate(queryitems):
         coldict[item]=index
     querylist = ",".join(queryitems)
-    query = """select %s from scamp_qa q, wgb where wgb.reqnum=%s and wgb.unitname='%s' and wgb.attnum=%s and wgb.filetype='xml_scamp' and wgb.filename=q.filename """ % (querylist,ReqNum,UnitName,AttNum)
+    query = """select %s from %sscamp_qa q, %swgb wgb where wgb.reqnum=%s and wgb.unitname='%s' and wgb.attnum=%s and wgb.filetype='xml_scamp' and wgb.filename=q.filename """ % (querylist,db_Schema,db_Schema,ReqNum,UnitName,AttNum)
+    print "# Executing query to obtain astrometry QA for this exposure"
     if args.verbose:
-        print "#Exposure level query for astrometry QA"
-        print query
+        print("# {:s}".format(query))
     cur.arraysize = 1000 # get 1000 at a time when fetching
     cur.execute(query)
 
@@ -774,59 +817,15 @@ if __name__ == "__main__":
         print("# WARNING: Probable astrometric solution failure: astrom_rms2 = {:.3f}".format(exp_rec["astrom_rms2"]))
         astrom_good=False
 
-    print "########################################"
-    if (astrom_good):
-        print "# Astrometric solution appears OK "
-    else:
-        print "# WARNING: Probable astrometric solution failure"
-    print "########################################"
-
 ################################################
 #   Open generic output file (changed to STDOUT)
 #    ftxt=open("%s.txt"% (args.froot), 'w')
     sys.stdout.flush()
     ftxt = sys.stdout 
-###############################################################################
-#
-#   Initial query to obtain run information (and to make sure that processing was successful/completed
-#
-#    queryitems = ["r.run", "r.pipeline", "r.operator", "r.project", "ds.state", "r.run_comment"]
-#    coldict={}
-#    for index, item in enumerate(queryitems):
-#        coldict[item]=index
-#    querylist = ",".join(queryitems)
-#    query = """select %s from run r, run_data_state ds where r.run = '%s' and r.run=ds.run """ % (querylist,run)
-#
-#    if args.verbose:
-#        print query
-#    cur.arraysize = 1000 # get 1000 at a time when fetching
-#    cur.execute(query)
-#
-#    for item  in cur:
-#        if (item[coldict["r.pipeline"]]=="finalcut"):
-#            pipevalue="FINALCUT"
-#        else:
-#            pipevalue=item[coldict["r.pipeline"]]
-#        ftxt.write("#      run: {:s} \n".format(item[coldict["r.run"]]))
-#        ftxt.write("# pipeline: {:s} \n".format(pipevalue))
-#        ftxt.write("# operator: {:s} \n".format(item[coldict["r.operator"]]))
-#        ftxt.write("#  project: {:s} \n".format(item[coldict["r.project"]]))
-#        ftxt.write("#    state: {:s} \n".format(item[coldict["ds.state"]]))
-#        ftxt.write("#  comment: {:s} \n".format(item[coldict["r.run_comment"]]))
-#        ftxt.write("# ")
 
     t1=time.time()
     print("# TIMING (general queries): {:.2f}".format((t1-t0)))
 ###############################################################################
-#   Prepare output files for writing
-#   First the header for the summary (.txt) file
-#
-#   CHANGED to write to stdout (so needs to occur at the end)
-#    ftxt.write("#                                                                                                         Astrometry \n")     
-#    ftxt.write("# Exposure                                     FWHM                             #        AIR    EXP  SCMP  HighSN     Depth       APASS           NOMAD      FWHM            \n")
-#    ftxt.write("#  Num   STATE    t_eff F_eff  B_eff   C_eff   World  Ellip    Sky_B   N_src   CCD BAND  MASS   TIME Flag sig1  sig2     Assess     dmag    #       dmag    #     Img    Object   \n")
-#    ftxt.write("#                                               [\"]           [DN/s]                             [s]      [\"]    [\"]     [mag]    [mag]            [mag]         \n")
-
 #
 #    Prepare for optional CSV output if args.csv is TRUE
 #
@@ -844,14 +843,7 @@ if __name__ == "__main__":
 #
     if (args.DB_file):
         fdbout=open("%s.dbupdate"% (args.froot), 'w')
-#
-#   Report exposure information for current 
-#
-    print "#   Exposure: ",exp_rec["expnum"]
-    print "#       Band: ",exp_rec["band"]
-    print("#    Exptime: {:.1f} ".format(exp_rec["exptime"]))
-    print "# "
-    print("#      Telescope(Ra,Dec): {:9.5f} {:9.5f} ".format(exp_rec["ra"],exp_rec["dec"]))
+
 ###############################################################################
 #
 #   Find nominal center and range spanned by focal plane for catalog search/comparison
@@ -887,8 +879,38 @@ if __name__ == "__main__":
     near_branch=False
     if ((ra_cen < fp_rad)or((ra_cen > 180.0)and(ra_cen > (360.-fp_rad)))):
        near_branch=True
+
+
+#
+#   Report exposure information for current 
+#
+    print "########################################"
+    print "#   date_obs: ",exp_rec["dateobs"]
+    print "#   Exposure: ",exp_rec["expnum"]
+    print "#       Band: ",exp_rec["band"]
+    print("#    Exptime: {:.1f} ".format(exp_rec["exptime"]))
+    print "# "
+    print "#    Obstype: ",exp_rec["obstype"]
+    print "#     Object: ",exp_rec["object"]
+    print "#    Program: ",exp_rec["program"]
+    print "# "
+    print("#      Telescope(Ra,Dec): {:9.5f} {:9.5f} ".format(exp_rec["ra"],exp_rec["dec"]))
+    print "#"
     print("# Image Centroid(Ra,Dec): {:9.5f} {:9.5f} ".format(exp_rec["ra_cen"],exp_rec["dec_cen"]))
     print "#"
+    print "# "
+    if (astrom_good):
+        print "# Astrometric solution appears OK "
+    else:
+        print "# WARNING: Probable astrometric solution failure"
+    print "# Astrometry summary:"
+    print("#                    high S/N      ")
+    print("#        ndets: {:d} ".format(exp_rec["astrom_ndets"]))
+    print("#         chi2: {:.2f} ".format(exp_rec["astrom_chi2"]))
+    print("#   astrom_sig: {:7.4f},{:7.4f} ".format(exp_rec["astrom_sig1"],exp_rec["astrom_sig2"]))
+    print("#   astrom_off: {:7.4f},{:7.4f} ".format(exp_rec["astrom_off1"],exp_rec["astrom_off2"]))
+    print "########################################"
+
 
 ###############################################################################
 #   Perform search on APASS and/or NOMAD catalog to get entries for this exposure
@@ -905,6 +927,7 @@ if __name__ == "__main__":
 #   I spent a fair amount of time making the matching algorithms robust to various types of errors and failures
 #   (e.g., center command failing, junk stars in the catalogs)  but there always seem to be a few edge cases.
 #
+    print "# Executing queries for NOMAD and APASS in vicinity of the exposure."
     queryitems_nomad=["n.ra", "n.dec", "n.sra", "n.sde", "n.mura", "n.mudec", "n.b", "n.v", "n.r", "n.j", "n.flags"] 
     queryitems_apass=["a.ra", "a.dec", "a.dra", "a.ddec", "a.b", "a.b_err", "a.v", "a.v_err", "a.g", "a.g_err", "a.r", "a.r_err", "a.i", "a.i_err" ] 
     coldict_nomad={}
@@ -936,6 +959,7 @@ if __name__ == "__main__":
         nomad_mag_constraint=' and n.j<%.1f ' % (jlimit)
         apass_mag_constraint=' and a.i<%.1f ' % (ilimit)
     print "# Applying NOMAD MAG CONSTRAINT ",nomad_mag_constraint," for work with ",exp_rec["band"],"-band data."
+    print "# Applying APASS MAG CONSTRAINT ",apass_mag_constraint," for work with ",exp_rec["band"],"-band data."
 
     if (near_branch):
 #
@@ -964,9 +988,8 @@ if __name__ == "__main__":
         query_nomad = """select %s from nomad n where n.dec < %.7f and n.dec > %.7f and n.ra < %.7f and n.ra > %.7f %s order by n.ra """ % ( querylist_nomad, dec1,dec2,ra1,ra2,nomad_mag_constraint )
         query_apass = """select %s from apass_dr7 a where a.dec < %.7f and a.dec > %.7f and a.ra < %.7f and a.ra > %.7f %s order by a.ra """ % ( querylist_apass, dec1,dec2,ra1,ra2,apass_mag_constraint )
     if args.verbose:
-        print "# Queries for NOMAD and APASS in vicinity of the exposure."
-        print query_nomad
-        print query_apass
+        print("# {:s}".format(query_nomad))
+        print("# {:s}".format(query_apass))
     cur.arraysize = 1000 # get 1000 at a time when fetching
     t2=time.time()
     print("# TIMING (pre-NOMAD/APASS): {:.2f}".format((t2-t1)))
@@ -984,30 +1007,40 @@ if __name__ == "__main__":
             gmag=float(item[coldict_apass["a.g"]])
             if (gmag > glimit):
                 tmp_apassdic["mag"]=99.0
+                tmp_apassdic["dmag"]=99.0
             else:
                 tmp_apassdic["mag"]=gmag
+                tmp_apassdic["dmag"]=float(item[coldict_apass["a.g_err"]])
         elif (exp_rec["band"] == "g"):
             gmag=float(item[coldict_apass["a.g"]])
             if (gmag > glimit):
                 tmp_apassdic["mag"]=99.0
+                tmp_apassdic["dmag"]=99.0
             else:
                 tmp_apassdic["mag"]=gmag
+                tmp_apassdic["dmag"]=float(item[coldict_apass["a.g_err"]])
         elif (exp_rec["band"] == "r"):
             rmag=float(item[coldict_apass["a.r"]])
             if (rmag > rlimit):
                 tmp_apassdic["mag"]=99.0
+                tmp_apassdic["dmag"]=99.0
             else:
                 tmp_apassdic["mag"]=rmag
+                tmp_apassdic["dmag"]=float(item[coldict_apass["a.r_err"]])
         elif (exp_rec["band"] in ["i","z","Y"]):
             imag=float(item[coldict_apass["a.i"]])
             if (imag > ilimit):
                 tmp_apassdic["mag"]=99.0
+                tmp_apassdic["dmag"]=99.0
             else:
                 tmp_apassdic["mag"]=imag
+                tmp_apassdic["dmag"]=float(item[coldict_apass["a.i_err"]])
         else:
             tmp_apassdic["mag"]=99.0
+            tmp_apassdic["dmag"]=99.0
         if (tmp_apassdic["mag"]<98.0):
             apass_cat.append(tmp_apassdic)
+    print "# "
     print "# Number of APASS entries found (after magnitude cuts) is: ",len(apass_cat)
 #
 #   If appropriate (currently always) acquire NOMAD data
@@ -1082,7 +1115,6 @@ if __name__ == "__main__":
     magnum_hist=numpy.zeros((len(mbin)),dtype=numpy.float32)
 
     nstar_found=0
-    apass_star_set=[]
     nomad_star_set=[]
     continue_nomad_ccorr=True
     continue_apass_ccorr=True
@@ -1149,6 +1181,7 @@ if __name__ == "__main__":
                 cat_fits.close()
 #   Re-order sorted on magnitude (allows for speed up when comparing with APASS/NOMAD below)
     new_expcat=sorted(exp_cat,key=lambda k: k['MAG_AUTO'])
+    match_starset=[]
     for object in new_expcat:
 #       Make lists that are actually operated on to obtain histogram
         mag.append(object["MAG_AUTO"]+mcorr)
@@ -1172,6 +1205,7 @@ if __name__ == "__main__":
                 tmp_starset["dec"]=object["DELTAWIN_J2000"]
                 tmp_starset["mag"]=object["MAG_AUTO"]+mcorr
                 tmp_starset["magerr"]=object["MAGERR_AUTO"]
+                add_tmp_starset_record=False
 #
 #               Cross correlation vs. NOMAD
 #
@@ -1180,9 +1214,11 @@ if __name__ == "__main__":
                     nncnt=nncnt+1
                     if (len(match_rec)>0):
                         nnfnd=nnfnd+1
-                        tmp_nomad_starset=tmp_starset
-                        tmp_nomad_starset["nomad"]=match_rec[0]
-                        nomad_star_set.append(tmp_nomad_starset)
+                        tmp_starset["nomad"]=match_rec[0]
+                        tmp_starset["nomad"]["magcorr"]=tmp_starset["nomad"]["mag"]+nomad_mag_corr[exp_rec["band"]]
+                        tmp_starset["nomad"]["magdiff"]=tmp_starset["mag"]-tmp_starset["nomad"]["mag"]-nomad_mag_corr[exp_rec["band"]]
+                        add_tmp_starset_record=True
+
 #
 #                   Look for the point of diminishing returns (very few new matches found)
 #
@@ -1202,9 +1238,10 @@ if __name__ == "__main__":
                     ancnt=ancnt+1
                     if (len(match_rec)>0):
                         anfnd=anfnd+1
-                        tmp_apass_starset=tmp_starset
-                        tmp_apass_starset["apass"]=match_rec[0]
-                        apass_star_set.append(tmp_apass_starset)
+                        tmp_starset["apass"]=match_rec[0]
+                        tmp_starset["apass"]["magcorr"]=tmp_starset["apass"]["mag"]+apass_mag_corr[exp_rec["band"]]
+                        tmp_starset["apass"]["magdiff"]=tmp_starset["mag"]-tmp_starset["apass"]["mag"]-apass_mag_corr[exp_rec["band"]]
+                        add_tmp_starset_record=True
 #
 #                   Look for the point of diminishing returns (very few new matches found)
 #
@@ -1215,22 +1252,90 @@ if __name__ == "__main__":
                         if ((len(arate100)>10)and(anfnd_sum>500)):
                             if ((arate100[-3]<a100_lim)and(arate100[-2]<a100_lim)and(arate100[-1]<a100_lim)):
                                 continue_apass_ccorr=False
+                # If add_tmp_starset_record is True then add the record to the matched star set.
+                if (add_tmp_starset_record):
+                    match_starset.append(tmp_starset)
+
     t4=time.time()
     exp_rec["numobj"]=len(mag)
-#   if (exp_rec["band"] in ["g","r","i"]):
-    print "# Number of APASS matches: ",len(apass_star_set)
-    print "# Number of NOMAD matches: ",len(nomad_star_set)
+    print "# "
+    print("# Number of objects from exposure catalogs: {:d}".format(exp_rec["numobj"]))
+
+    sat_check={}
+    num_matches={}
+    for cat in ['apass','nomad']:
+        sat_check[cat]=[]
+        num_matches[cat]=0
+    for record in match_starset:
+        for cat in ['apass','nomad']:
+            if (cat in record):
+                sat_check[cat].append((record["mag"],record[cat]["magcorr"],record[cat]["magdiff"]))
+                num_matches[cat]=num_matches[cat]+1
+    for cat in ['apass','nomad']:
+        print("# Number of {:s} matches: {:d}".format(cat,num_matches[cat]))
     print("# TIMING (APASS/NOMAD crosscorr): {:.2f}".format((t4-t3)))
 #
-#   Now that the match has occurred. Assess the results
+#   Check for significant #'s of saturated stars.
+#
+    sat_limit=5.0
+    print("###################################################################")
+    print("# Evaluating saturation limit")
+    for cat in ['apass','nomad']:
+        print("# ")
+        adjust_satlimit=False
+        sat_check[cat+'_sorted']=sorted(sat_check[cat],key=lambda x: x[1])
+        magdes,magcorr,magdiff=zip(*sat_check[cat+'_sorted'])
+        a_magcorr=numpy.array(magcorr)
+        a_magdiff=numpy.array(magdiff)
+        if (len(magcorr)>100):
+            sample_end=len(magcorr)/5
+            if (sample_end > 100):
+                sample_end=100
+            b_med_magdiff=numpy.median(a_magdiff[:sample_end])
+            f_med_magdiff=numpy.median(a_magdiff[-sample_end:])
+            b_std_magdiff=numpy.std(a_magdiff[:sample_end])
+            f_std_magdiff=numpy.std(a_magdiff[-sample_end:])
+
+            f_diff_cut=f_med_magdiff+(3.*f_std_magdiff)
+            print("# For {:s} median mag_diff for FAINT  stars {:7.3f} +/- {:7.3f}".format(cat,f_med_magdiff,f_std_magdiff))
+            print("# For {:s} median mag_diff for BRIGHT stars {:7.3f} +/- {:7.3f}".format(cat,b_med_magdiff,b_std_magdiff))
+            if (b_med_magdiff>f_diff_cut):
+                print("# Magdiff for faint stars in {:s} more than 3-sigma offset from bright stars.".format(cat))
+                adjust_satlimit=True
+            nstar=0
+            dnstar=10
+            while((nstar<(len(magcorr)-dnstar))and(adjust_satlimit)):
+                num_sat=len(numpy.where(a_magdiff[nstar:(nstar+dnstar)] > f_diff_cut)[0])
+                if (num_sat >= dnstar/2):
+                    b_avg=numpy.average(a_magcorr[nstar:(nstar+dnstar)])
+                    if (b_avg > sat_limit):
+                        sat_limit=b_avg
+                else:
+                    adjust_satlimit=False
+                nstar=nstar+dnstar 
+            print("# After examining {:s}, saturation limit now: {:.3f} ".format(cat,sat_limit))
+#
+#   Find out how many stars are left.
+#
+    print("# ")
+    num_matches={}
+    for cat in ['apass','nomad']:
+        magdes,magcorr,magdiff=zip(*sat_check[cat])
+        a_magcorr=numpy.array(magcorr)
+        num_matches[cat]=len(numpy.where(a_magcorr > sat_limit)[0])
+    for cat in ['apass','nomad']:
+        print("# Number of {:s} matches remaining: {:d}".format(cat,num_matches[cat]))
+
+#
+#   Proceed to assessing the atmospheric opacity.
 #
     transparency_calc=False
 #   if (exp_rec["band"] in ["g","r","i"]):
-    if (len(apass_star_set)<100):
+    if (num_matches['apass']<100):
 #       For a limited number of stars do not make comparison... output will be sentinel value.
         exp_rec["apass_magdiff"]=99.0
         exp_rec["apass_kmagdiff"]=99.0
-        exp_rec["apass_num"]=len(apass_star_set)
+        exp_rec["apass_num"]=num_matches['apass']
         if (args.qaplot):
 #           If QA plots have been requested then output an empty QA plot that gives 
 #           information about the failure.
@@ -1246,7 +1351,7 @@ if __name__ == "__main__":
                 plt.ylabel('APASS i\'')
             else:
                 plt.ylabel('APASS [unknown]')
-            plt.text(10.5,17,'Number of APASS matches: %d' % (len(apass_star_set)))
+            plt.text(10.5,17,'Number of APASS matches: %d' % (num_matches['apass']))
             if (not(astrom_good)):
                 plt.text(10.5,16,'Probable failure to find an astrometric solution')
             plt.subplot(2,1,2)
@@ -1263,36 +1368,32 @@ if __name__ == "__main__":
             plt.savefig("%s_apass.png" % (args.froot))
     else:
 #       Workhorse case... find offset
-        mag_des=[]
-        mag_apass=[]
-        mag_diff=[]
-        for record in apass_star_set:
-            mag_des.append(record["mag"])
-            mag_apass.append(record["apass"]["mag"]+apass_mag_corr[exp_rec["band"]])
-            mag_diff.append(record["mag"]-record["apass"]["mag"]-apass_mag_corr[exp_rec["band"]])
+        mag_des,mag_apass,mag_diff=zip(*sat_check['apass'])
+        amag_apass=numpy.array(mag_apass)
         amag_diff=numpy.array(mag_diff)
-        med_magdiff=numpy.median(amag_diff)
-        std_magdiff=numpy.std(amag_diff)
+
+#       numpy.where(numpy.logical_and((numpy.logical_and((r2_acolor>=cntcut),(i2_acolor>=cntcut))),(numpy.logical_and((z2_acolor>=cntcut),(g1_acolor>75.)))
+        cut_val=numpy.where(amag_apass > sat_limit)
+        med_magdiff=numpy.median(amag_diff[cut_val])
+        std_magdiff=numpy.std(amag_diff[cut_val])
+        print("# ")
         print("# (PRELIM APASS) Median magnitude offset: {:8.3f} {:8.3f} ".format(med_magdiff,std_magdiff))
 #
 #       Perform a rejection iteration.
 #
-        mag_des=[]
-        mag_apass=[]
-        mag_diff=[]
-        mag_des_reject=[]
-        mag_apass_reject=[]
-        mag_diff_reject=[]
-        for record in apass_star_set:
-            junkval=record["mag"]-record["apass"]["mag"]-apass_mag_corr[exp_rec["band"]]
+        mag_fit=[]
+        mag_reject=[]
+        for record in sat_check['apass']:
+            junkval=record[0]-record[1]
             if (abs((junkval-med_magdiff)/std_magdiff)>5.0):
-                mag_des_reject.append(record["mag"])
-                mag_apass_reject.append(record["apass"]["mag"]+apass_mag_corr[exp_rec["band"]])
-                mag_diff_reject.append(record["mag"]-record["apass"]["mag"]-apass_mag_corr[exp_rec["band"]])
+                mag_reject.append(record)
             else:
-                mag_des.append(record["mag"])
-                mag_apass.append(record["apass"]["mag"]+apass_mag_corr[exp_rec["band"]])
-                mag_diff.append(record["mag"]-record["apass"]["mag"]-apass_mag_corr[exp_rec["band"]])
+                mag_fit.append(record)
+        mag_des,mag_apass,mag_diff=zip(*mag_fit)
+        mag_des_reject,mag_apass_reject,mag_diff_reject=zip(*mag_reject)
+#
+#       Go on and calculate magnitude(s) of opacity
+#
         amag_diff=numpy.array(mag_diff)
         mindes=min(mag_des)
         maxdes=max(mag_des)
@@ -1300,7 +1401,7 @@ if __name__ == "__main__":
         std_magdiff=numpy.std(amag_diff)
         exp_rec["apass_magdiff"]=med_magdiff
         exp_rec["apass_kmagdiff"]=med_magdiff-apass_mag_corr[exp_rec["band"]]+apass_kmag_corr[exp_rec["band"]]-(kterm[band2i[exp_rec["band"]]]*exp_rec["airmass"])
-        exp_rec["apass_num"]=len(apass_star_set)
+        exp_rec["apass_num"]=num_matches['apass']
 
         if (exp_rec["band"] in ["g","r"]):
             transparency_calc=True
@@ -1347,11 +1448,11 @@ if __name__ == "__main__":
 #
 #   Repeat for NOMAD
 #
-    if (len(nomad_star_set)<100):
+    if (num_matches['nomad']<100):
 #       For a limited number of stars do not make comparison... output will be sentinel value.
         exp_rec["nomad_magdiff"]=99.0
         exp_rec["nomad_kmagdiff"]=99.0
-        exp_rec["nomad_num"]=len(nomad_star_set)
+        exp_rec["nomad_num"]=num_matches['nomad']
         if (args.qaplot):
 #           If QA plots have been requested then output an empty QA plot that gives 
 #           information about the failure.
@@ -1367,7 +1468,7 @@ if __name__ == "__main__":
                 plt.ylabel('NOMAD [(2*B+J)/3]')
             else:
                 plt.ylabel('NOMAD [unknown]')
-            plt.text(10.5,17,'Number of NOMAD matches: %d' % (len(nomad_star_set)))
+            plt.text(10.5,17,'Number of NOMAD matches: %d' % (num_matches['nomad']))
             if (not(astrom_good)):
                 plt.text(10.5,16,'Probable failure to find an astrometric solution')
             plt.subplot(2,1,2)
@@ -1384,38 +1485,31 @@ if __name__ == "__main__":
             plt.savefig("%s_nomad.png" % (args.froot))
     else:
 #       Workhorse case... find offset
-        mag_des=[]
-        mag_nomad=[]
-        mag_diff=[]
-        for record in nomad_star_set:
-            mag_des.append(record["mag"])
-            mag_nomad.append(record["nomad"]["mag"]+nomad_mag_corr[exp_rec["band"]])
-            mag_diff.append(record["mag"]-record["nomad"]["mag"]-nomad_mag_corr[exp_rec["band"]])
+        mag_des,mag_nomad,mag_diff=zip(*sat_check['nomad'])
+        amag_nomad=numpy.array(mag_nomad)
         amag_diff=numpy.array(mag_diff)
-        mindes=min(mag_des)
-        maxdes=max(mag_des)
-        med_magdiff=numpy.median(amag_diff)
-        std_magdiff=numpy.std(amag_diff)
+
+#       numpy.where(numpy.logical_and((numpy.logical_and((r2_acolor>=cntcut),(i2_acolor>=cntcut))),(numpy.logical_and((z2_acolor>=cntcut),(g1_acolor>75.)))
+        cut_val=numpy.where(amag_nomad > sat_limit)
+        med_magdiff=numpy.median(amag_diff[cut_val])
+        std_magdiff=numpy.std(amag_diff[cut_val])
         print("# (PRELIM NOMAD) Median magnitude offset: {:8.3f} {:8.3f} ".format(med_magdiff,std_magdiff))
 #
 #       Perform a rejection iteration.
 #
-        mag_des=[]
-        mag_nomad=[]
-        mag_diff=[]
-        mag_des_reject=[]
-        mag_nomad_reject=[]
-        mag_diff_reject=[]
-        for record in nomad_star_set:
-            junkval=record["mag"]-record["nomad"]["mag"]-nomad_mag_corr[exp_rec["band"]]
+        mag_fit=[]
+        mag_reject=[]
+        for record in sat_check['nomad']:
+            junkval=record[0]-record[1]
             if (abs((junkval-med_magdiff)/std_magdiff)>5.0):
-                mag_des_reject.append(record["mag"])
-                mag_nomad_reject.append(record["nomad"]["mag"]+nomad_mag_corr[exp_rec["band"]])
-                mag_diff_reject.append(record["mag"]-record["nomad"]["mag"]-nomad_mag_corr[exp_rec["band"]])
+                mag_reject.append(record)
             else:
-                mag_des.append(record["mag"])
-                mag_nomad.append(record["nomad"]["mag"]+nomad_mag_corr[exp_rec["band"]])
-                mag_diff.append(record["mag"]-record["nomad"]["mag"]-nomad_mag_corr[exp_rec["band"]])
+                mag_fit.append(record)
+        mag_des,mag_nomad,mag_diff=zip(*mag_fit)
+        mag_des_reject,mag_nomad_reject,mag_diff_reject=zip(*mag_reject)
+#
+#       Go on and calculate magnitude(s) of opacity
+#
         amag_diff=numpy.array(mag_diff)
         mindes=min(mag_des)
         maxdes=max(mag_des)
@@ -1423,7 +1517,7 @@ if __name__ == "__main__":
         std_magdiff=numpy.std(amag_diff)
         exp_rec["nomad_magdiff"]=med_magdiff
         exp_rec["nomad_kmagdiff"]=med_magdiff-nomad_mag_corr[exp_rec["band"]]+nomad_kmag_corr[exp_rec["band"]]-(kterm[band2i[exp_rec["band"]]]*exp_rec["airmass"])
-        exp_rec["nomad_num"]=len(nomad_star_set)
+        exp_rec["nomad_num"]=num_matches['nomad']
 
 #
 #       If APASS has not provided a result then use NOMAD result otherwise report result 
@@ -1480,6 +1574,7 @@ if __name__ == "__main__":
         exp_rec["cloud_cat"]="Failed"
     t5=time.time()
     print("# TIMING (Transparency calculation): {:.2f}".format((t5-t4)))
+    print(" ")
 ##############################################################################
 #   FWHM 
 #
@@ -1691,6 +1786,7 @@ if __name__ == "__main__":
     t7=time.time()
     print("# TIMING for exposure {:7d}: (all={:6.2f}, general_query={:6.2f}, APASS={:6.2f}, NOMAD={:6.2f}, crosscorr={:6.2f}, cat_compare={:6.2f} ,mag_analyze={:6.2f}) ".format(exp_rec["expnum"],(t7-t0),(t1-t0),(t3-t2a),(t2a-t2),(t4-t3),(t5-t4),(t6-t5)))
     print("# FWHM measures for exposure {:7d}: (NSTAR_FOUND,FWHM_IMG,WORLD,2*A,A+B,Kron,R50) {:6d} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} ".format(exp_rec["expnum"],exp_rec["nstar_found"],exp_rec["fwhm_img"],exp_rec["fwhm_world"],exp_rec["fwhm_rrad1"],exp_rec["fwhm_rrad2"],exp_rec["fwhm_krad"],exp_rec["fwhm_frad"]))
+    print("# ")
 
 ###############################################################################
 #   Everything is now ready to make an assessment and to output it to the 
