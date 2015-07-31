@@ -185,7 +185,6 @@ if __name__ == "__main__":
     import stat
     import time
     import math
-    import bisect
     import re
     import csv
     import sys
@@ -280,7 +279,7 @@ if __name__ == "__main__":
     print("# Using Analyst: {:s}".format(analyst))
     print("# ")
     if (args.qaplot):
-        print("# QA Plots requested (with filename root {:s}".format(args.froot))
+        print("# QA Plots requested (with root filename: {:s}).".format(args.froot))
         print("# ")
 
 
@@ -450,7 +449,7 @@ if __name__ == "__main__":
         for index, item in enumerate(queryitems):
             coldict[item]=index
         querylist = ",".join(queryitems)
-        query = """select %s from %swgb wgb, %stask task, %sfile_archive_info fai, %sops_archive oa, %scatalog c where wgb.task_id=task.id and wgb.reqnum=%s and wgb.unitname='%s' and wgb.attnum=%s and wgb.filetype='cat_finalcut' and fai.filename=wgb.filename and c.filename=wgb.filename and oa.name=fai.archive_name order by task.start_time """ % (querylist,db_Schema,db_Schema,db_Schema,db_Schema,db_Schema,ReqNum,UnitName,AttNum)
+        query = """select %s from %swgb wgb, %stask task, %sfile_archive_info fai, %sops_archive oa, %scatalog c where wgb.exec_task_id=task.id and wgb.reqnum=%s and wgb.unitname='%s' and wgb.attnum=%s and wgb.filetype='cat_finalcut' and fai.filename=wgb.filename and c.filename=wgb.filename and oa.name=fai.archive_name order by task.start_time """ % (querylist,db_Schema,db_Schema,db_Schema,db_Schema,db_Schema,ReqNum,UnitName,AttNum)
 
         print "# Executing initial query for catalogs "
         if args.verbose:
@@ -1138,6 +1137,14 @@ if __name__ == "__main__":
 #                  "FLUX_RADIUS","KRON_RADIUS","CLASS_STAR","FLAGS"]
     cols_retrieve=["ALPHAWIN_J2000","DELTAWIN_J2000","MAG_AUTO","MAGERR_AUTO","SPREAD_MODEL","FWHM_WORLD",
                    "A_IMAGE","B_IMAGE","FLUX_RADIUS","KRON_RADIUS","CLASS_STAR","FLAGS"]
+    cols_datacheck={"ALPHAWIN_J2000":{"min":-0.1,"max":360.1},
+                    "DELTAWIN_J2000":{"min":-90.0,"max":90.0},
+                    "FWHM_WORLD":{"min":(0.1/3600.),"max":(10.0/3600.)},
+                    "A_IMAGE":{"min":(0.1/pixsize),"max":(10.0/pixsize)},
+                    "B_IMAGE":{"min":(0.1/pixsize),"max":(10.0/pixsize)},
+                    "FLUX_RADIUS":{"min":(0.1/pixsize),"max":(5.0/pixsize)},
+                    "KRON_RADIUS":{"min":(0.1/pixsize),"max":(5.0/pixsize)}
+                    }
 ###############################################################################
 #   Current columns avaliable in finalcut_cat objects.
 #
@@ -1158,6 +1165,7 @@ if __name__ == "__main__":
 #    'CLASS_STAR', 'FWHMPSF_IMAGE', 'FWHMPSF_WORLD', 'MAG_POINTSOURCE']
 #
 #   Read each catalog and build list of dictionaries containing contents.
+#   Provisionally check data while reading against limits set in cols_datacheck.
 #
     exp_cat=[]
     for iccd in range(1,63):
@@ -1174,10 +1182,15 @@ if __name__ == "__main__":
 #
                 for row in CAT:
                     if (row[cdict["FLAGS"]] == 0):
+                        check_entry=True
                         tmp_dict={}
                         for colnam in cols_retrieve:
                             tmp_dict[colnam]=row[cdict[colnam]]
-                        exp_cat.append(tmp_dict)
+                            if (colnam in cols_datacheck):
+                                if (tmp_dict[colnam]<cols_datacheck[colnam]["min"]): check_entry=False
+                                if (tmp_dict[colnam]>cols_datacheck[colnam]["max"]): check_entry=False
+                        if (check_entry):
+                            exp_cat.append(tmp_dict)
                 cat_fits.close()
 #   Re-order sorted on magnitude (allows for speed up when comparing with APASS/NOMAD below)
     new_expcat=sorted(exp_cat,key=lambda k: k['MAG_AUTO'])
@@ -1193,6 +1206,8 @@ if __name__ == "__main__":
             nstar_found=nstar_found+1
             aval=object["A_IMAGE"]
             bval=object["B_IMAGE"]
+#            if ((aval>20)or(bval>20)or(object["FWHM_WORLD"]>20.)or(object["FLUX_RADIUS"]>20)or(object["KRON_RADIUS"]>20)):
+#                print "# AHHHHHH: ",object
             rrad1.append(2.0*aval)
             rrad2.append(aval+bval)
             fwld.append(object["FWHM_WORLD"])
@@ -1278,6 +1293,7 @@ if __name__ == "__main__":
 #   Check for significant #'s of saturated stars.
 #
     sat_limit=5.0
+    sat_sig_thresh=2.0
     print("###################################################################")
     print("# Evaluating saturation limit")
     for cat in ['apass','nomad']:
@@ -1296,11 +1312,11 @@ if __name__ == "__main__":
             b_std_magdiff=numpy.std(a_magdiff[:sample_end])
             f_std_magdiff=numpy.std(a_magdiff[-sample_end:])
 
-            f_diff_cut=f_med_magdiff+(3.*f_std_magdiff)
+            f_diff_cut=f_med_magdiff+(sat_sig_thresh*f_std_magdiff)
             print("# For {:s} median mag_diff for FAINT  stars {:7.3f} +/- {:7.3f}".format(cat,f_med_magdiff,f_std_magdiff))
             print("# For {:s} median mag_diff for BRIGHT stars {:7.3f} +/- {:7.3f}".format(cat,b_med_magdiff,b_std_magdiff))
             if (b_med_magdiff>f_diff_cut):
-                print("# Magdiff for faint stars in {:s} more than 3-sigma offset from bright stars.".format(cat))
+                print("# Magdiff for faint stars in {:s} more than {:.1f}-sigma offset from bright stars.".format(cat,sat_sig_thresh))
                 adjust_satlimit=True
             nstar=0
             dnstar=10
@@ -1341,6 +1357,8 @@ if __name__ == "__main__":
 #           information about the failure.
             plt.figure()
             plt.subplot(2,1,1)
+            mag_des,mag_apass,mag_diff=zip(*sat_check['apass'])
+            plt.scatter(mag_des,mag_apass,marker='.',color='blue')
             plt.plot([10,18],[10,18],color='red',linewidth=1)
             plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
             if (exp_rec["band"] in ["u","g"]):
@@ -1385,12 +1403,25 @@ if __name__ == "__main__":
         mag_reject=[]
         for record in sat_check['apass']:
             junkval=record[0]-record[1]
-            if (abs((junkval-med_magdiff)/std_magdiff)>5.0):
+            reject_val=False
+            if (abs((junkval-med_magdiff)/std_magdiff)>3.0): reject_val=True
+            if (record[1] < sat_limit): reject_val=True
+            if (reject_val):
                 mag_reject.append(record)
             else:
                 mag_fit.append(record)
-        mag_des,mag_apass,mag_diff=zip(*mag_fit)
-        mag_des_reject,mag_apass_reject,mag_diff_reject=zip(*mag_reject)
+        if (len(mag_fit)>0):
+            mag_des,mag_apass,mag_diff=zip(*mag_fit)
+        else:
+            mag_des=[]
+            mag_apass=[]
+            mag_diff=[]
+        if (len(mag_reject)>0):
+            mag_des_reject,mag_apass_reject,mag_diff_reject=zip(*mag_reject)
+        else:
+            mag_des_reject=[]
+            mag_apass_reject=[]
+            mag_diff_reject=[]
 #
 #       Go on and calculate magnitude(s) of opacity
 #
@@ -1458,6 +1489,8 @@ if __name__ == "__main__":
 #           information about the failure.
             plt.figure()
             plt.subplot(2,1,1)
+            mag_des,mag_nomad,mag_diff=zip(*sat_check['nomad'])
+            plt.scatter(mag_des,mag_nomad,marker='.',color='blue')
             plt.plot([10,18],[10,18],color='red',linewidth=1)
             plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
             if (exp_rec["band"] in ["i","z","Y"]):
@@ -1501,12 +1534,26 @@ if __name__ == "__main__":
         mag_reject=[]
         for record in sat_check['nomad']:
             junkval=record[0]-record[1]
-            if (abs((junkval-med_magdiff)/std_magdiff)>5.0):
+            reject_val=False
+            if (abs((junkval-med_magdiff)/std_magdiff)>3.0): reject_val=True
+            if (record[1] < sat_limit): reject_val=True
+            if (reject_val):
                 mag_reject.append(record)
             else:
                 mag_fit.append(record)
-        mag_des,mag_nomad,mag_diff=zip(*mag_fit)
-        mag_des_reject,mag_nomad_reject,mag_diff_reject=zip(*mag_reject)
+        if (len(mag_fit)>0):
+            mag_des,mag_nomad,mag_diff=zip(*mag_fit)
+        else:
+            mag_des=[]
+            mag_nomad=[]
+            mag_diff=[]
+        if (len(mag_reject)>0):
+            mag_des_reject,mag_nomad_reject,mag_diff_reject=zip(*mag_reject)
+        else:
+            mag_des_reject=[]
+            mag_nomad_reject=[]
+            mag_diff_reject=[]
+
 #
 #       Go on and calculate magnitude(s) of opacity
 #
