@@ -1300,7 +1300,12 @@ if __name__ == "__main__":
         print("# ")
         adjust_satlimit=False
         sat_check[cat+'_sorted']=sorted(sat_check[cat],key=lambda x: x[1])
-        magdes,magcorr,magdiff=zip(*sat_check[cat+'_sorted'])
+        if (len(sat_check[cat+'_sorted'])>0):
+            magdes,magcorr,magdiff=zip(*sat_check[cat+'_sorted'])
+        else:
+            magdes=[]
+            magcorr=[]
+            magdiff=[]
         a_magcorr=numpy.array(magcorr)
         a_magdiff=numpy.array(magdiff)
         if (len(magcorr)>100):
@@ -1336,7 +1341,12 @@ if __name__ == "__main__":
     print("# ")
     num_matches={}
     for cat in ['apass','nomad']:
-        magdes,magcorr,magdiff=zip(*sat_check[cat])
+        if (len(sat_check[cat])>0):
+            magdes,magcorr,magdiff=zip(*sat_check[cat])
+        else:
+            magdes=[]
+            magcorr=[]
+            magdiff=[]
         a_magcorr=numpy.array(magcorr)
         num_matches[cat]=len(numpy.where(a_magcorr > sat_limit)[0])
     for cat in ['apass','nomad']:
@@ -1357,7 +1367,12 @@ if __name__ == "__main__":
 #           information about the failure.
             plt.figure()
             plt.subplot(2,1,1)
-            mag_des,mag_apass,mag_diff=zip(*sat_check['apass'])
+            if (len(sat_check['apass'])>0):
+                mag_des,mag_apass,mag_diff=zip(*sat_check['apass'])
+            else:
+                mag_des=[]
+                mag_apass=[]
+                mag_diff=[]
             plt.scatter(mag_des,mag_apass,marker='.',color='blue')
             plt.plot([10,18],[10,18],color='red',linewidth=1)
             plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
@@ -1386,7 +1401,12 @@ if __name__ == "__main__":
             plt.savefig("%s_apass.png" % (args.froot))
     else:
 #       Workhorse case... find offset
-        mag_des,mag_apass,mag_diff=zip(*sat_check['apass'])
+        if (len(sat_check['apass'])>0):
+            mag_des,mag_apass,mag_diff=zip(*sat_check['apass'])
+        else:
+            mag_des=[]
+            mag_apass=[]
+            mag_diff=[]
         amag_apass=numpy.array(mag_apass)
         amag_diff=numpy.array(mag_diff)
 
@@ -1489,7 +1509,12 @@ if __name__ == "__main__":
 #           information about the failure.
             plt.figure()
             plt.subplot(2,1,1)
-            mag_des,mag_nomad,mag_diff=zip(*sat_check['nomad'])
+            if (len(sat_check['nomad'])>0):
+                mag_des,mag_nomad,mag_diff=zip(*sat_check['nomad'])
+            else:
+                mag_des=[]
+                mag_nomad=[]
+                mag_diff=[]
             plt.scatter(mag_des,mag_nomad,marker='.',color='blue')
             plt.plot([10,18],[10,18],color='red',linewidth=1)
             plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
@@ -1518,7 +1543,12 @@ if __name__ == "__main__":
             plt.savefig("%s_nomad.png" % (args.froot))
     else:
 #       Workhorse case... find offset
-        mag_des,mag_nomad,mag_diff=zip(*sat_check['nomad'])
+        if (len(sat_check['nomad'])>0):
+            mag_des,mag_nomad,mag_diff=zip(*sat_check['nomad'])
+        else:
+            mag_des=[]
+            mag_nomad=[]
+            mag_diff=[]
         amag_nomad=numpy.array(mag_nomad)
         amag_diff=numpy.array(mag_diff)
 
