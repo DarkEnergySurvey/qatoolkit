@@ -27,14 +27,14 @@ class DisplayDES:
         self.StarsColor = keys.get('StarsColor','yellow')
 
 
-    def showSCI(self):
+    def showSCI(self,fr=1):
 
         """ Display the Science Image """
         
         print "# Will try to display %s" % self.ImageName
-
+        
         # Get the sci extension
-        self.sci_hdu,self.sci_hdr = get_sci_hdu(self.ImageName)
+        self.sci_hdu,self.sci_hdr = get_hdu_number(self.ImageName,extname='IMAGE')
         
         # Check env variables and set to proper values
         ds9.check_env(verb=self.verb);
@@ -49,12 +49,44 @@ class DisplayDES:
         # Science on frame 1
         sci = "%s[%d]" % (self.ImageName,self.sci_hdu)
         print "# Displaying %s" % sci
-        ds9.put(sci,fr=1, zoom=True,
+        ds9.put(sci,fr=fr, zoom=True,
                 scale     = 'linear', 
                 scalemode = self.scalemode,
                 advance   = None,
                 limits    = None,
                 cmap      = 'Gray') 
+
+
+    def showWGT(self,fr=2):
+
+        """ Display the Weight Image """
+        
+        print "# Will try to display %s" % self.ImageName
+
+        # Get the wgt extension
+        self.wgt_hdu,self.wgt_hdr = get_hdu_number(self.ImageName,extname='WEIGHT')
+
+        # Check env variables and set to proper values
+        ds9.check_env(verb=self.verb);
+
+        # Check if DS9 is already running -- if not start
+        status = ds9.check_ds9(verb=self.verb);
+        
+        # Will display images in new frame if existing session
+        if status == 'old':
+            os.system("xpaset -p ds9 frame new")
+
+        # Weight on frame 2
+        sci = "%s[%d]" % (self.ImageName,self.wgt_hdu)
+        print "# Displaying %s" % sci
+        ds9.put(sci,fr=fr, zoom=True,
+                scale     = 'linear', 
+                scalemode = self.scalemode,
+                advance   = None,
+                limits    = None,
+                cmap      = 'Gray') 
+
+
 
     def whichCat(self):
 
@@ -90,6 +122,7 @@ class DisplayDES:
         self.NUMBER      = tbdata['NUMBER']
         self.X_IMAGE     = tbdata['X_IMAGE']
         self.Y_IMAGE     = tbdata['Y_IMAGE']
+        self.FLAGS       = tbdata['FLAGS']
         
         if self.CatType == 'flat':
             # Store the Relevant positional information existan in Flat SEx cats
@@ -105,6 +138,7 @@ class DisplayDES:
 
         if self.CatType == 'flat':
             self.displaySExDetections()
+            #self.displaySExDetectionsFlags()
         elif self.CatType == 'multi':
             self.displaySCampDetections()
         else:
@@ -115,6 +149,19 @@ class DisplayDES:
         """ Display detection for SExtractor flat catalog"""
         shapes = zip(self.X_IMAGE,self.Y_IMAGE,self.A_IMAGE,self.B_IMAGE,self.THETA_IMAGE)
         ds9.ellipses(shapes,color=self.SExColor,text='',options='',units='deg',out=None)      
+
+    def displaySExDetectionsFlags(self):
+
+        """ Display detection for SExtractor flat catalog"""
+        idx = numpy.where(self.FLAGS >= 4)
+        shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
+
+        ds9.ellipses(shapes,color='blue',text='',options='',units='deg',out=None)      
+
+        idx  = numpy.where(self.FLAGS < 4)
+        shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
+        ds9.ellipses(shapes,color=self.SExColor,text='',options='',units='deg',out=None)      
+
 
     def displaySCampDetections(self):
 
@@ -244,6 +291,36 @@ def get_sci_hdu(fitsFile):
 
     FITS.close()
     return sci_hdu,sci_hdr
+
+
+def get_hdu_number(fitsFile,extname='IMAGE'):
+
+    """
+    Simple function to figure the HDU extensions for DESDM fits files,
+    and extract the science header.
+    Better than relying on the .fz vs .fits ending of the files
+    """ 
+     
+    hdu_num = None
+    # Loop trough each HDU on the fits file
+    FITS = pyfits.open(fitsFile)
+    for i in range(len(FITS)):
+        h = FITS[i].header       # Get the header
+
+        if ('DES_EXT' in h.keys()) :
+            des_ext = h['DES_EXT'].strip()
+            if (des_ext == extname) :
+                hdu_num = i
+                hdu_hdr = h.copy()
+
+    if (hdu_num is None):
+        hdu_num = 0
+        hdu_hdr = FITS[0].header.copy()
+        print "# WARNING: Cannot find extensions via DES_EXT keyword in header, defaulting to 0"
+
+    FITS.close()
+    return hdu_num,hdu_hdr
+
 
 
 # The main fuction to fill up all of the options
