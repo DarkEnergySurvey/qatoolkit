@@ -23,5 +23,5 @@ d.readCat()
 d.displayCatalog()
 
 ## Display Weight
-#d.showWGT()
+d.showWGT()
 
