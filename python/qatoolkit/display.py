@@ -352,3 +352,36 @@ def cmdline():
 
     return args
 
+
+# The main fuction to fill up all of the options
+def cmdline_coadd():
+
+    import argparse
+    parser = argparse.ArgumentParser(description="Display SExtractor detections of DECam images")
+
+    # The positional arguments
+    parser.add_argument("ImageName", help="Fits file Image [fits.fz or .fits]")
+    parser.add_argument("CatName",   help="SExtractor Catalog [fits format]")
+    
+    # The optional arguments for display
+    parser.add_argument("--scalemode", default='zscale',
+                        help="scalemode to use [default=zscale]")
+
+    parser.add_argument("--SExColor", default='blue',
+                        help="Color for SExtractor detections [default=blue]")
+
+    parser.add_argument("--StarsColor", default='yellow',
+                        help="Color for Star's catalog [default=yellow]")
+
+    parser.add_argument("--ShowWeight", action='store_true',default=False,
+                        help="Show the weight plane [default=False]")
+
+    args = parser.parse_args()
+
+    print "# Will run:"
+    print "# %s " % parser.prog
+    for key in vars(args):
+        print "# \t--%-10s\t%s" % (key,vars(args)[key])
+
+    return args
+

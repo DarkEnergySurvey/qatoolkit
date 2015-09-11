@@ -4,15 +4,16 @@
 
 This is simple method/script to display DECam detections using ds9'
 xpa and overlay NOMAD catalog for that section in order the check
-astrometry aligment.
+astrometry aligment. This one is for coadded MEF fits files and SEx
+catalogs.
 
-Felipe Menanteau, NCSA, Mar 2014.
+Felipe Menanteau, NCSA, Sep 2015.
 
 """
 
 from qatoolkit import display
 
-args = display.cmdline()
+args = display.cmdline_coadd()
 d = display.DisplayDES(**args.__dict__) # Pass it as a dictionary, as required by fuctions/classes
 
 # Display Science
@@ -22,6 +23,7 @@ d.showSCI()
 d.readCat()
 d.displayCatalog()
 
-## Display Weight
-d.showWGT()
+## Display Weight if required
+if args.ShowWeight:
+    d.showWGT()
 
