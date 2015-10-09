@@ -315,22 +315,22 @@ if __name__ == "__main__":
     magbin_max=25.
     magbin_step=0.25
     mbin=numpy.arange(magbin_min,magbin_max,magbin_step)
-    band2i={"u":0,"g":1,"r":2,"i":3,"z":4,"Y":5}
+    band2i={"u":0,"g":1,"r":2,"i":3,"z":4,"Y":5,"VR":6}
 #
 #   Old ellipticity limits (currently not used)
 #
 #    ellip_lim=0.13
 #    ellip_good=0.07
 #
-    kolmogorov={"u":1.2,"g":1.103,"r":1.041,"i":1.00,"z":0.965,"Y":0.95}
-    teff_lim={  "u":0.2,"g":0.2,  "r":0.3,  "i":0.3, "z":0.3,  "Y":0.2}
+    kolmogorov={"u":1.2,"g":1.103,"r":1.041,"i":1.00,"z":0.965,"Y":0.95,"VR":1.04}
+    teff_lim={  "u":0.2,"g":0.2,  "r":0.3,  "i":0.3, "z":0.3,  "Y":0.2,"VR":0.3}
     seeing_lim={}
     seeing_fid={}
 #
 #   Set seeing cutoff to be 1.6 times Kolmogov except at "Y" which should
 #   be forced to match that at g-band
 #
-    for band in ["u","g","r","i","z","Y"]:
+    for band in ["u","g","r","i","z","Y","VR"]:
         if (band == "Y"):
             seeing_lim[band]=1.6*kolmogorov["g"]
         else:
@@ -343,8 +343,8 @@ if __name__ == "__main__":
 #   Surface brightness limits from Eric Nielson which were derived "...from a few 
 #   exposures from a photometric night in SV with little moon (20121215)"
 #
-    sbrite_good={"u":2.0,"g":1.05,"r":2.66,"i":7.87,"z":16.51,"Y":14.56}
-    sbrite_lim={"u":8.0,"g":4.0,"r":9.58,"i":21.9,"z":50.2,"Y":27.6}
+    sbrite_good={"u":2.0,"g":1.05,"r":2.66,"i":7.87,"z":16.51,"Y":14.56,"VR":3.71}
+    sbrite_lim={"u":8.0,"g":4.0,"r":9.58,"i":21.9,"z":50.2,"Y":27.6,"VR":13.58}
 #
 #   These (the above) were originally based on the following estimate by Annis
 #   sbrite_good={"u":2.0,"g":1.2,"r":3.8,"i":8.7,"z":20.0,"Y":11.0}
@@ -370,10 +370,10 @@ if __name__ == "__main__":
 #   Values *_mag_corr (assume no extinction correction)
 #   Values *_kmag_corr (assume a k*airmass correction)
 #
-    apass_mag_corr={"u":0.0,"g":0.205,"r":0.128,"i":0.112,"z":0.0,"Y":0.0}
-    apass_kmag_corr={"u":0.0,"g":0.000,"r":0.000,"i":0.000,"z":0.0,"Y":0.0}
-    nomad_mag_corr={"u":0.0,"g":0.341,"r":0.235,"i":1.398,"z":1.201,"Y":1.083}
-    nomad_kmag_corr={"u":0.0,"g":0.111,"r":0.109,"i":1.289,"z":1.139,"Y":1.022}
+    apass_mag_corr={"u":0.0,"g":0.205,"r":0.128,"i":0.112,"z":0.0,"Y":0.0,"VR":0.0}
+    apass_kmag_corr={"u":0.0,"g":0.000,"r":0.000,"i":0.000,"z":0.0,"Y":0.0,"VR":0.0}
+    nomad_mag_corr={"u":0.0,"g":0.341,"r":0.235,"i":1.398,"z":1.201,"Y":1.083,"VR":0.0}
+    nomad_kmag_corr={"u":0.0,"g":0.111,"r":0.109,"i":1.289,"z":1.139,"Y":1.022,"VR":0.0}
 #
 #   NOMAD B-mag correction
 #
@@ -410,23 +410,25 @@ if __name__ == "__main__":
 #
 #   A set of aterm(s) that represent an estimate for the nominal zeropoint on a clear, photometric night.
 #
-    aterm=numpy.zeros(6,dtype=numpy.float32)
+    aterm=numpy.zeros(7,dtype=numpy.float32)
     aterm[0]=-25.0
     aterm[1]=-25.428
     aterm[2]=-25.532
     aterm[3]=-25.413
     aterm[4]=-25.086
     aterm[5]=-24.000
+    aterm[6]=-25.47
 #
 #   A set of kterm(s) that represent an estimate for the nominal extinction/airmass correction on a clear, photometric night.
 #
-    kterm=numpy.zeros(6,dtype=numpy.float32)
+    kterm=numpy.zeros(7,dtype=numpy.float32)
     kterm[0]=0.489
     kterm[1]=0.181
     kterm[2]=0.095
     kterm[3]=0.089
     kterm[4]=0.053
     kterm[5]=0.05
+    kterm[6]=0.13
 
     print("####################################################")
     print("# Initialized. ")
@@ -484,7 +486,7 @@ if __name__ == "__main__":
 #   Now that a starting point has been established...
 #   Obtain associated DB information for each catalog/CCD.
 # 
-    queryitems = ["i.filename","i.expnum","i.band","i.ccdnum","i.airmass","i.exptime","i.fwhm","i.elliptic","i.skybrite","i.skysigma","i.scampflg","i.ra_cent","i.dec_cent","i.rac1","i.rac2","i.rac3","i.rac4","i.decc1","i.decc2","i.decc3","i.decc4"]
+    queryitems = ["i.filename","i.expnum","i.band","i.ccdnum","i.airmass","i.exptime","i.fwhm","i.elliptic","i.skybrite","i.skysigma","i.scampflg","i.gaina","i.gainb","i.ra_cent","i.dec_cent","i.rac1","i.rac2","i.rac3","i.rac4","i.decc1","i.decc2","i.decc3","i.decc4"]
     coldict={}
     for index, item in enumerate(queryitems):
         coldict[item]=index
@@ -514,6 +516,16 @@ if __name__ == "__main__":
             else:
                 tmp_dict["band"]=item[coldict["i.band"]]
                 tmp_dict["iband"]=band2i[item[coldict["i.band"]]]
+            if (item[coldict["i.gaina"]] is None):
+                tmp_dict["gaina"]=-1.
+                print "# Warning: Null found for GAINA"
+            else:
+                tmp_dict["gaina"]=float(item[coldict["i.gaina"]])
+            if (item[coldict["i.gainb"]] is None):
+                tmp_dict["gainb"]=-1.
+                print "# Warning: Null found for GAINB"
+            else:
+                tmp_dict["gainb"]=float(item[coldict["i.gainb"]])
             tmp_dict["ccdnum"]=int(item[coldict["i.ccdnum"]])
             tmp_dict["airmass"]=float(item[coldict["i.airmass"]])
             tmp_dict["exptime"]=float(item[coldict["i.exptime"]])
@@ -532,17 +544,36 @@ if __name__ == "__main__":
             else:
                 tmp_dict["img_dec"]=[float(item[coldict["i.decc1"]]),float(item[coldict["i.decc2"]]),float(item[coldict["i.decc3"]]),float(item[coldict["i.decc4"]])]
 #
+#           sbrite_good and sbrite_lim are defined in cts/sec
+#           Therefore:
+#              If exposure time is present then use to normalize brightness to a per second quantity
+#              If gains are present then use to express brightness in counts (rather than electrons)
+#
             if (tmp_dict["exptime"]>0.01):
-                tmp_dict["skyb"]=float(item[coldict["i.skybrite"]])/tmp_dict["exptime"]
-                tmp_dict["skys"]=float(item[coldict["i.skysigma"]])/tmp_dict["exptime"]
+                efactor=tmp_dict["exptime"]
             else:
-                tmp_dict["skyb"]=float(item[coldict["i.skybrite"]])
-                tmp_dict["skys"]=float(item[coldict["i.skysigma"]])
+                efactor=1.0
+#
+            gtesta=tmp_dict["gaina"]-1.
+            gtestb=tmp_dict["gainb"]-1.
+            if ((abs(gtesta)<0.01)and(abs(gtestb)<0.01)):
+#               The case where gains are 1... therefore units are electrons
+                if (args.verbose):
+                    print("# GAINA/B are 1.0 ")
+                gfactor=4.0
+            else:
+#               The case where gains are not 1... therefore units are already in counts
+                gfactor=1.0
+            tmp_dict["skyb"]=float(item[coldict["i.skybrite"]])/efactor/gfactor
+            tmp_dict["skys"]=float(item[coldict["i.skysigma"]])/efactor/gfactor
+#
+#
             if (item[coldict["i.scampflg"]] is None):
                 tmp_dict["sflag"]=2
             else:
                 tmp_dict["sflag"]=int(item[coldict["i.scampflg"]])
             ccd_info[tmp_dict["ccdnum"]]=tmp_dict
+
 
 ##############################################################################
 #   Fill in entries for missing CCDs (if there are any)
@@ -621,7 +652,7 @@ if __name__ == "__main__":
         print "Abort: Other than one band identified?: ",uniq_band_chk
         exit(1)
     else:
-        if (uniq_band_chk[0] in ['u','g','r','i','z','Y']):
+        if (uniq_band_chk[0] in ['u','g','r','i','z','Y','VR']):
             exp_rec['band']=uniq_band_chk[0]
         else:
             print "Abort: Unsupported value for band?: ",uniq_band_chk[0]
@@ -948,7 +979,7 @@ if __name__ == "__main__":
     if (exp_rec["band"] == "g"):
         nomad_mag_constraint=' and n.b<%.1f ' % (blimit)
         apass_mag_constraint=' and a.g<%.1f ' % (glimit)
-    elif (exp_rec["band"] == "r"):
+    elif ((exp_rec["band"] == "r")or(exp_rec["band"] == "VR")):
         nomad_mag_constraint=' and n.b<%.1f and n.j<%.1f ' % (blimit,jlimit)
         apass_mag_constraint=' and a.r<%.1f ' % (rlimit)
     elif (exp_rec["band"] == "i"):
@@ -996,47 +1027,37 @@ if __name__ == "__main__":
 #       If appropriate obtain APASS data  (currently always)
 #
 #   if (exp_rec["band"] in ["g","r","i"]):
+
+#
+#   Setup rules for parsing APASS
+#
+    apass_parse={"ra":"a.ra","dec":"a.dec"}
+    if (exp_rec["band"] in ["u","g"]):
+        apass_parse["mag"]="a.g"
+        apass_parse["dmag"]="a.g_err"
+        apass_parse["mlimit"]=glimit
+    elif (exp_rec["band"] in ["r","VR"]):
+        apass_parse["mag"]="a.r"
+        apass_parse["dmag"]="a.r_err"
+        apass_parse["mlimit"]=rlimit
+    elif (exp_rec["band"] in ["i","z","Y"]):
+        apass_parse["mag"]="a.i"
+        apass_parse["dmag"]="a.i_err"
+        apass_parse["mlimit"]=ilimit
+
     cur.execute(query_apass)
     apass_cat=[]
     for item in cur:
         tmp_apassdic={}
-        tmp_apassdic["ra"]=float(item[coldict_apass["a.ra"]])
-        tmp_apassdic["dec"]=float(item[coldict_apass["a.dec"]])
-        if (exp_rec["band"] == "u"):
-            gmag=float(item[coldict_apass["a.g"]])
-            if (gmag > glimit):
-                tmp_apassdic["mag"]=99.0
-                tmp_apassdic["dmag"]=99.0
-            else:
-                tmp_apassdic["mag"]=gmag
-                tmp_apassdic["dmag"]=float(item[coldict_apass["a.g_err"]])
-        elif (exp_rec["band"] == "g"):
-            gmag=float(item[coldict_apass["a.g"]])
-            if (gmag > glimit):
-                tmp_apassdic["mag"]=99.0
-                tmp_apassdic["dmag"]=99.0
-            else:
-                tmp_apassdic["mag"]=gmag
-                tmp_apassdic["dmag"]=float(item[coldict_apass["a.g_err"]])
-        elif (exp_rec["band"] == "r"):
-            rmag=float(item[coldict_apass["a.r"]])
-            if (rmag > rlimit):
-                tmp_apassdic["mag"]=99.0
-                tmp_apassdic["dmag"]=99.0
-            else:
-                tmp_apassdic["mag"]=rmag
-                tmp_apassdic["dmag"]=float(item[coldict_apass["a.r_err"]])
-        elif (exp_rec["band"] in ["i","z","Y"]):
-            imag=float(item[coldict_apass["a.i"]])
-            if (imag > ilimit):
-                tmp_apassdic["mag"]=99.0
-                tmp_apassdic["dmag"]=99.0
-            else:
-                tmp_apassdic["mag"]=imag
-                tmp_apassdic["dmag"]=float(item[coldict_apass["a.i_err"]])
-        else:
+        tmp_apassdic["ra"]=float(item[coldict_apass[apass_parse["ra"]]])
+        tmp_apassdic["dec"]=float(item[coldict_apass[apass_parse["dec"]]])
+        mag=float(item[coldict_apass[apass_parse["mag"]]])
+        if (mag > apass_parse["mlimit"]):
             tmp_apassdic["mag"]=99.0
             tmp_apassdic["dmag"]=99.0
+        else:
+            tmp_apassdic["mag"]=mag
+            tmp_apassdic["dmag"]=float(item[coldict_apass[apass_parse["dmag"]]])
         if (tmp_apassdic["mag"]<98.0):
             apass_cat.append(tmp_apassdic)
     print "# "
@@ -1068,7 +1089,7 @@ if __name__ == "__main__":
                 else:
                     tmp_nomaddic["mag"]=bmag
             tmp_nomaddic["mag"]=bmag
-        elif (exp_rec["band"] == "r"):
+        elif (exp_rec["band"] in ["r","VR"]):
             jmag=float(item[coldict_nomad["n.j"]])
             bmag=float(item[coldict_nomad["n.b"]])+nomad_bmag_corr[int(tmp_nomaddic["dec"]+90.0)]
             if ((jmag > jlimit)or(bmag>blimit)):
@@ -1378,7 +1399,7 @@ if __name__ == "__main__":
             plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
             if (exp_rec["band"] in ["u","g"]):
                 plt.ylabel('APASS g\'')
-            elif (exp_rec["band"] == "r"):
+            elif (exp_rec["band"] in ["r","VR"]):
                 plt.ylabel('APASS r\'')
             elif (exp_rec["band"] in ["i","z","Y"]):
                 plt.ylabel('APASS i\'')
@@ -1392,7 +1413,7 @@ if __name__ == "__main__":
             plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
             if (exp_rec["band"] in ["u","g"]):
                 plt.ylabel('DES - APASS g\'')
-            elif (exp_rec["band"] == "r"):
+            elif (exp_rec["band"] in ["r","VR"]):
                 plt.ylabel('DES - APASS r\'')
             elif (exp_rec["band"] in ["i","z","Y"]):
                 plt.ylabel('DES - APASS i\'')
@@ -1474,7 +1495,7 @@ if __name__ == "__main__":
             plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
             if (exp_rec["band"] in ["u","g"]):
                 plt.ylabel('APASS g\'')
-            elif (exp_rec["band"] == "r"):
+            elif (exp_rec["band"] in ["r","VR"]):
                 plt.ylabel('APASS r\'')
             elif (exp_rec["band"] in ["i","z","Y"]):
                 plt.ylabel('APASS i\'')
@@ -1488,7 +1509,7 @@ if __name__ == "__main__":
             plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
             if (exp_rec["band"] in ["u","g"]):
                 plt.ylabel('DES - APASS g\'')
-            elif (exp_rec["band"] == "r"):
+            elif (exp_rec["band"] in ["r","VR"]):
                 plt.ylabel('DES - APASS r\'')
             elif (exp_rec["band"] in ["i","z","Y"]):
                 plt.ylabel('DES - APASS i\'')
@@ -1522,7 +1543,7 @@ if __name__ == "__main__":
                 plt.ylabel('NOMAD J')
             elif (exp_rec["band"] in ["u","g"]):
                 plt.ylabel('NOMAD B')
-            elif (exp_rec["band"] == "r"):
+            elif (exp_rec["band"] in ["r","VR"]):
                 plt.ylabel('NOMAD [(2*B+J)/3]')
             else:
                 plt.ylabel('NOMAD [unknown]')
@@ -1536,7 +1557,7 @@ if __name__ == "__main__":
                 plt.ylabel('DES - NOMAD J')
             elif (exp_rec["band"] in ["u","g"]):
                 plt.ylabel('DES - NOMAD B')
-            elif (exp_rec["band"] == "r"):
+            elif (exp_rec["band"] in ["r","VR"]):
                 plt.ylabel('DES - NOMAD [(2*B+J)/3]')
             else:
                 plt.ylabel('DES - NOMAD [unknown]')
@@ -1621,7 +1642,7 @@ if __name__ == "__main__":
                 plt.ylabel('NOMAD J')
             elif (exp_rec["band"] in ["u","g"]):
                 plt.ylabel('NOMAD B')
-            elif (exp_rec["band"] == "r"):
+            elif (exp_rec["band"] in ["r","VR"]):
                 plt.ylabel('NOMAD [(2*B+J)/3]')
             else:
                 plt.ylabel('NOMAD [unknown]')
@@ -1635,7 +1656,7 @@ if __name__ == "__main__":
                 plt.ylabel('DES - NOMAD J')
             elif (exp_rec["band"] in ["u","g"]):
                 plt.ylabel('DES - NOMAD B')
-            elif (exp_rec["band"] == "r"):
+            elif (exp_rec["band"] in ["r","VR"]):
                 plt.ylabel('DES - NOMAD [(2*B+J)/3]')
             else:
                 plt.ylabel('DES - NOMAD [unknown]')
