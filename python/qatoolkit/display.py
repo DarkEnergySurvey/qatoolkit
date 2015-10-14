@@ -382,7 +382,7 @@ def cmdline_coadd():
     parser.add_argument("--ShowWeight", action='store_true',default=False,
                         help="Show the weight plane [default=False]")
 
-    parser.add_argument("--imaflags", default=False, action='store_true'
+    parser.add_argument("--imaflags", default=False, action='store_true',
                         help="Color for SExtractor detections [default=blue]")
 
     args = parser.parse_args()
