@@ -21,7 +21,7 @@ d.showSCI()
 
 # Display Catalog
 d.readCat()
-d.displayCatalog()
+d.displayCatalog(imaflags=args.imaflags)
 
 ## Display Weight if required
 if args.ShowWeight:

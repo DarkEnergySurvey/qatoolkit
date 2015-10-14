@@ -130,15 +130,21 @@ class DisplayDES:
             self.A_IMAGE     = tbdata['A_IMAGE']*self.KRON_RADIUS
             self.B_IMAGE     = tbdata['B_IMAGE']*self.KRON_RADIUS
             self.THETA_IMAGE = tbdata['THETA_IMAGE']
+            try:
+                self.IMAFLAGS_ISO = tbdata['IMAFLAGS_ISO']
+            except:
+                print "# WARNING: Could not lead IMAFLAGS_ISO"
 
 
-    def displayCatalog(self):
+    def displayCatalog(self,imaflags=False):
 
         """ Make the call to display the relevant catalog"""
 
         if self.CatType == 'flat':
-            self.displaySExDetections()
-            #self.displaySExDetectionsFlags()
+            if imaflags:
+                self.displaySExDetectionsFlags()
+            else:
+                self.displaySExDetections()
         elif self.CatType == 'multi':
             self.displaySCampDetections()
         else:
@@ -153,7 +159,7 @@ class DisplayDES:
     def displaySExDetectionsFlags(self):
 
         """ Display detection for SExtractor flat catalog"""
-        idx = numpy.where(self.FLAGS >= 4)
+        idx = numpy.where(self.IMAFLAGS_ISO > 0)
         shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
 
         ds9.ellipses(shapes,color='blue',text='',options='',units='deg',out=None)      
@@ -337,7 +343,7 @@ def cmdline():
     parser.add_argument("--scalemode", default='zscale',
                         help="scalemode to use [default=zscale]")
 
-    parser.add_argument("--SExColor", default='blue',
+    parser.add_argument("--SExColor", default='yellow',
                         help="Color for SExtractor detections [default=blue]")
 
     parser.add_argument("--StarsColor", default='yellow',
@@ -367,14 +373,17 @@ def cmdline_coadd():
     parser.add_argument("--scalemode", default='zscale',
                         help="scalemode to use [default=zscale]")
 
-    parser.add_argument("--SExColor", default='blue',
+    parser.add_argument("--SExColor", default='yellow',
                         help="Color for SExtractor detections [default=blue]")
 
-    parser.add_argument("--StarsColor", default='yellow',
+    parser.add_argument("--StarsColor", default='red',
                         help="Color for Star's catalog [default=yellow]")
 
     parser.add_argument("--ShowWeight", action='store_true',default=False,
                         help="Show the weight plane [default=False]")
+
+    parser.add_argument("--imaflags", default=False, action='store_true'
+                        help="Color for SExtractor detections [default=blue]")
 
     args = parser.parse_args()
 
