@@ -556,14 +556,18 @@ if __name__ == "__main__":
 #
             gtesta=tmp_dict["gaina"]-1.
             gtestb=tmp_dict["gainb"]-1.
-            if ((abs(gtesta)<0.01)and(abs(gtestb)<0.01)):
+            if ((abs(gtesta)<0.25)and(abs(gtestb)<0.25)):
 #               The case where gains are 1... therefore units are electrons
                 if (args.verbose):
-                    print("# GAINA/B are 1.0 ")
+                    print("# GAINA/B are consistent with units of electrons (GAINA:{:.3f},GAINB:{:.3f})".format(tmp_dict["gaina"],tmp_dict["gainb"]))
                 gfactor=4.0
+                tmp_dict["bunit"]='e-'
             else:
 #               The case where gains are not 1... therefore units are already in counts
+                if (args.verbose):
+                    print("# GAINA/B are consistent with units of DN (GAINA:{:.3f},GAINB:{:.3f})".format(tmp_dict["gaina"],tmp_dict["gainb"]))
                 gfactor=1.0
+                tmp_dict["bunit"]='DN'
             tmp_dict["skyb"]=float(item[coldict["i.skybrite"]])/efactor/gfactor
             tmp_dict["skys"]=float(item[coldict["i.skysigma"]])/efactor/gfactor
 #
@@ -585,6 +589,7 @@ if __name__ == "__main__":
     skys=[]
     img_ra=[]
     img_dec=[]
+    bunit_chk=[]
     band_chk=[]
     expnum_chk=[]
     exptime_chk=[]
@@ -597,6 +602,7 @@ if __name__ == "__main__":
 #            print iccd,ccd_info[iccd]
             ccd_info[iccd]['data']=True
             numccd=numccd+1
+            bunit_chk.append(ccd_info[iccd]['bunit'])
             band_chk.append(ccd_info[iccd]['band'])
             expnum_chk.append(ccd_info[iccd]['expnum'])
             exptime_chk.append(ccd_info[iccd]['exptime'])
@@ -622,6 +628,7 @@ if __name__ == "__main__":
 #
     uniq_exptime_chk=list(set(exptime_chk))
     uniq_band_chk=list(set(band_chk))
+    uniq_bunit_chk=list(set(bunit_chk))
     uniq_expnum_chk=list(set(expnum_chk))
     uniq_airmass_chk=list(set(airmass_chk))
     if (len(uniq_exptime_chk) != 1):
@@ -645,6 +652,19 @@ if __name__ == "__main__":
             print "Aborting: No airmass?: "
             exit(1)
     exp_rec['airmass']=uniq_airmass_chk[0]
+#
+#   Now check bunit for consistency
+#
+    if (len(uniq_bunit_chk) != 1):
+        if (len(uniq_bunit_chk) > 1):
+            print "WARNING: Other than one bunit?: ",uniq_bunit_chk
+            print "WARNING: Using bunit: ",uniq_bunit_chk[0]
+            exp_rec['airmass']=uniq_bunit_chk[0]
+        else:
+            print "WARNING: Assuming bunit = DN"
+            exp_rec['bunit']='DN'
+    else:
+        exp_rec['bunit']=uniq_bunit_chk[0]
 #
 #   Now check band (also check that it is a sanctioned value)
 #
@@ -919,6 +939,7 @@ if __name__ == "__main__":
     print "#   Exposure: ",exp_rec["expnum"]
     print "#       Band: ",exp_rec["band"]
     print("#    Exptime: {:.1f} ".format(exp_rec["exptime"]))
+    print "#      BUNIT: ",exp_rec["bunit"]
     print "# "
     print "#    Obstype: ",exp_rec["obstype"]
     print "#     Object: ",exp_rec["object"]
@@ -1121,7 +1142,12 @@ if __name__ == "__main__":
 #
     mtime=2.5*numpy.log10(exp_rec["exptime"])
     aval=aterm[band2i[exp_rec["band"]]]
-    mcorr=mtime-aval-25.0
+    if (exp_rec["bunit"]=="e-"):
+        bval=-2.5*numpy.log10(4.0)
+    else:   
+        bval=-2.5*numpy.log10(1.0)
+#    print "RAG: bval=",bval
+    mcorr=mtime-aval-25.0-bval
     mag=[]
     magerr=[]
     emag=[]
