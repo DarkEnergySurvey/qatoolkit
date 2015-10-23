@@ -8,7 +8,7 @@ setupRequired(drawDECam 0.1.0+3)
 setupRequired(despydb 2.0.0+4) 
 
 # Pyfits
-setupRequired(pyfits 3.3+2)
+setupRequired(pyfits 3.3+3)
 
 # pil > 1.1.7+9 are compatible with libjpeg 8d+0 for tiff and stiff
 setupRequired(pil 1.1.7+13)    
