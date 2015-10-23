@@ -161,13 +161,15 @@ class DisplayDES:
         """ Display detection for SExtractor flat catalog"""
         idx = numpy.where(self.IMAFLAGS_ISO > 0)
         shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
-
         ds9.ellipses(shapes,color='blue',text='',options='',units='deg',out=None)      
 
-        idx  = numpy.where(self.FLAGS < 4)
+        idx = numpy.logical_and(self.IMAFLAGS_ISO == 0, self.FLAGS < 4)
         shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
         ds9.ellipses(shapes,color=self.SExColor,text='',options='',units='deg',out=None)      
 
+        idx = numpy.logical_and(self.IMAFLAGS_ISO == 0, self.FLAGS >= 4)
+        shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
+        ds9.ellipses(shapes,color='red',text='',options='',units='deg',out=None)      
 
     def displaySCampDetections(self):
 

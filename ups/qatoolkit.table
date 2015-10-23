@@ -1,22 +1,22 @@
 # despyastro loads: python, numpy, matplotlib and pyfits
-setupRequired(despyastro 0.3.0+3) 
+setupRequired(despyastro 0.3.3+0) 
 
 # To draw DECam shapes -- loads matplotlib
-setupRequired(drawDECam 0.1.0+0) 
+setupRequired(drawDECam 0.1.0+3) 
 
 # DB access
-setupRequired(despydb 2.0.0+2) 
+setupRequired(despydb 2.0.0+4) 
 
 # Pyfits
 setupRequired(pyfits 3.3+2)
 
 # pil > 1.1.7+9 are compatible with libjpeg 8d+0 for tiff and stiff
-setupRequired(pil 1.1.7+11)    
-setupRequired(fitsio 0.9.6+1) 
+setupRequired(pil 1.1.7+13)    
+setupRequired(fitsio 0.9.8rc1+2) 
 
 # Bertin's code
 setupRequired(stiff 2.1.3+1)
-setupRequired(swarp 2.36.2+2)
+setupRequired(swarp 2.38.0.1+0)
 
 # For fpack, funpack we need cfitsio
 setupRequired(cfitsio 3.370+0)
