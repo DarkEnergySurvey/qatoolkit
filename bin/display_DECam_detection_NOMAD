@@ -18,9 +18,10 @@ d.showSCI()
 
 # Display Catalog
 d.readCat()
-d.displayCatalog()
+d.displayCatalog(imaflags=args.imaflags)
 
 # Display stars
-d.getCCDlimits()
-d.displayNOMAD()
+if args.NOMAD:
+    d.getCCDlimits()
+    d.displayNOMAD()
 
