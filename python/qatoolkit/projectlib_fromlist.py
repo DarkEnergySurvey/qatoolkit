@@ -77,7 +77,7 @@ class project_DECam_fromlist:
         self.INPUT_PIXEL_SCALE = 0.263
 
         if self.weight_thresh:
-            self.weight_thresh = self.weight_thresh*(self.INPUT_PIXEL_SCALE/self.pixscale)**2
+            self.weight_thresh = float(self.weight_thresh)*(self.INPUT_PIXEL_SCALE/self.pixscale)**2
 
         # Read in the imagalist and catlist (if present)
         self.read_filelists()

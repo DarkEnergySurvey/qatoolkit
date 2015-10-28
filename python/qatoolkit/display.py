@@ -350,6 +350,12 @@ def cmdline():
 
     parser.add_argument("--StarsColor", default='yellow',
                         help="Color for Star's catalog [default=yellow]")
+
+    parser.add_argument("--imaflags", default=False, action='store_true',
+                        help="Color for SExtractor detections [default=blue]")
+
+    parser.add_argument("--NOMAD", default=False, action='store_true',
+                        help="Display NOMAD detections")
     
     args = parser.parse_args()
 
