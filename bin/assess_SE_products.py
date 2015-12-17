@@ -343,8 +343,8 @@ if __name__ == "__main__":
 #   Surface brightness limits from Eric Nielson which were derived "...from a few 
 #   exposures from a photometric night in SV with little moon (20121215)"
 #
-    sbrite_good={"u":2.0,"g":1.05,"r":2.66,"i":7.87,"z":16.51,"Y":14.56,"VR":3.71}
-    sbrite_lim={"u":8.0,"g":4.0,"r":9.58,"i":21.9,"z":50.2,"Y":27.6,"VR":13.58}
+    sbrite_good={"u":0.2,"g":1.05,"r":2.66,"i":7.87,"z":16.51,"Y":14.56,"VR":3.71}
+    sbrite_lim={"u":0.8,"g":4.0,"r":9.58,"i":21.9,"z":50.2,"Y":27.6,"VR":13.58}
 #
 #   These (the above) were originally based on the following estimate by Annis
 #   sbrite_good={"u":2.0,"g":1.2,"r":3.8,"i":8.7,"z":20.0,"Y":11.0}
@@ -370,9 +370,9 @@ if __name__ == "__main__":
 #   Values *_mag_corr (assume no extinction correction)
 #   Values *_kmag_corr (assume a k*airmass correction)
 #
-    apass_mag_corr={"u":0.0,"g":0.205,"r":0.128,"i":0.112,"z":0.0,"Y":0.0,"VR":0.0}
+    apass_mag_corr={"u":3.5,"g":0.205,"r":0.128,"i":0.112,"z":0.0,"Y":0.0,"VR":0.0}
     apass_kmag_corr={"u":0.0,"g":0.000,"r":0.000,"i":0.000,"z":0.0,"Y":0.0,"VR":0.0}
-    nomad_mag_corr={"u":0.0,"g":0.341,"r":0.235,"i":1.398,"z":1.201,"Y":1.083,"VR":0.0}
+    nomad_mag_corr={"u":3.65,"g":0.341,"r":0.235,"i":1.398,"z":1.201,"Y":1.083,"VR":0.0}
     nomad_kmag_corr={"u":0.0,"g":0.111,"r":0.109,"i":1.289,"z":1.139,"Y":1.022,"VR":0.0}
 #
 #   NOMAD B-mag correction
