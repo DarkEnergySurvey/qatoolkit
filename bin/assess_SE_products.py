@@ -527,7 +527,11 @@ if __name__ == "__main__":
             else:
                 tmp_dict["gainb"]=float(item[coldict["i.gainb"]])
             tmp_dict["ccdnum"]=int(item[coldict["i.ccdnum"]])
-            tmp_dict["airmass"]=float(item[coldict["i.airmass"]])
+            if (item[coldict["i.airmass"]] is None):
+                tmp_dict["airmass"]=1.2
+                print "# Warning: Null found for AIRMASS (default to 1.2)"
+            else:
+                tmp_dict["airmass"]=float(item[coldict["i.airmass"]])
             tmp_dict["exptime"]=float(item[coldict["i.exptime"]])
             tmp_dict["fwhm_old"]=pixsize*float(item[coldict["i.fwhm"]])
             tmp_dict["elli_old"]=float(item[coldict["i.elliptic"]])
@@ -649,8 +653,9 @@ if __name__ == "__main__":
             print "WARNING: Using airmass: ",uniq_airmass_chk[0]
             exp_rec['airmass']=uniq_airmass_chk[0]
         else:
-            print "Aborting: No airmass?: "
-            exit(1)
+            print "WARNING: No airmass?: "
+            print "WARNING: Using defualt setting airmass: 1.2"
+            exp_rec['airmass']=1.2
     exp_rec['airmass']=uniq_airmass_chk[0]
 #
 #   Now check bunit for consistency
@@ -659,7 +664,7 @@ if __name__ == "__main__":
         if (len(uniq_bunit_chk) > 1):
             print "WARNING: Other than one bunit?: ",uniq_bunit_chk
             print "WARNING: Using bunit: ",uniq_bunit_chk[0]
-            exp_rec['airmass']=uniq_bunit_chk[0]
+            exp_rec['bunit']=uniq_bunit_chk[0]
         else:
             print "WARNING: Assuming bunit = DN"
             exp_rec['bunit']='DN'
@@ -768,7 +773,7 @@ if __name__ == "__main__":
                 print "WARNING: EXPTIME miss-match between exposure-level (",item[coldict["e.exptime"]],") and image/catalog-level (",exp_rec["band"],") queries.  Using image/cat-result."
 
         if (item[coldict["e.airmass"]] is None):
-           print "WARNING: BAND miss-match between exposure-level (Unknown) and image/catalog-level (",exp_rec["airmass"],") queries.  Using image/cat-result."
+           print "WARNING: AIRMASS miss-match between exposure-level (Unknown) and image/catalog-level (",exp_rec["airmass"],") queries.  Using image/cat-result."
         else:
             if (item[coldict["e.airmass"]] != exp_rec["airmass"]):
                 print "WARNING: AIRMASS miss-match between exposure-level (",item[coldict["e.airmass"]],") and image/catalog-level (",exp_rec["airmass"],") queries.  Using image/cat-result."
