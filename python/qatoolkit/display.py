@@ -25,7 +25,8 @@ class DisplayDES:
 
         self.SExColor   = keys.get('SExColor','blue')
         self.StarsColor = keys.get('StarsColor','yellow')
-
+        self.lowSNthresh = keys.get('lowSNthresh',None)
+        self.lowSNColor  = keys.get('lowSNColor','green')
 
     def showSCI(self,fr=1):
 
@@ -135,16 +136,29 @@ class DisplayDES:
             except:
                 print "# WARNING: Could not lead IMAFLAGS_ISO"
 
+            # Get the index where we will set to zero
+            try:
+                ERR = 'MAGERR_AUTO'
+                idxgood = numpy.where(tbdata[ERR] < 5)
+                self.SN = tbdata[ERR]*0.0
+                self.SN[idxgood] = 1./( 10**(0.4*tbdata[ERR][idxgood]) - 1)
+            except:
+                print "WARNING: Could not compute S/N for catalog"
+            #SN = 1./( 10**(0.4*tbdata['MAGERR_AUTO']) - 1)
 
-    def displayCatalog(self,imaflags=False):
+    def displayCatalog(self,imaflags=False,lowSN=False):
 
         """ Make the call to display the relevant catalog"""
 
         if self.CatType == 'flat':
             if imaflags:
-                self.displaySExDetectionsFlags()
+                if lowSN:
+                    self.displaySExDetectionsFlagsSN()
+                else:
+                    self.displaySExDetectionsFlags()
             else:
                 self.displaySExDetections()
+
         elif self.CatType == 'multi':
             self.displaySCampDetections()
         else:
@@ -161,15 +175,28 @@ class DisplayDES:
         """ Display detection for SExtractor flat catalog"""
         idx = numpy.where(self.IMAFLAGS_ISO > 0)
         shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
+
         ds9.ellipses(shapes,color='blue',text='',options='',units='deg',out=None)      
 
-        idx = numpy.logical_and(self.IMAFLAGS_ISO == 0, self.FLAGS < 4)
+        idx  = numpy.where(self.FLAGS < 4)
         shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
         ds9.ellipses(shapes,color=self.SExColor,text='',options='',units='deg',out=None)      
 
-        idx = numpy.logical_and(self.IMAFLAGS_ISO == 0, self.FLAGS >= 4)
+    def displaySExDetectionsFlagsSN(self):
+
+        """ Display detection for SExtractor flat catalog"""
+        idx  = numpy.where(self.SN < self.lowSNthresh)
         shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
-        ds9.ellipses(shapes,color='red',text='',options='',units='deg',out=None)      
+        ds9.ellipses(shapes,color=self.lowSNColor,text='',options='',units='deg',out=None)      
+
+        idx = numpy.where(self.IMAFLAGS_ISO > 0)
+        shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
+        ds9.ellipses(shapes,color='blue',text='',options='',units='deg',out=None)      
+
+        idx  = numpy.where(self.FLAGS < 4)
+        shapes = zip(self.X_IMAGE[idx],self.Y_IMAGE[idx],self.A_IMAGE[idx],self.B_IMAGE[idx],self.THETA_IMAGE[idx])
+        ds9.ellipses(shapes,color=self.SExColor,text='',options='',units='deg',out=None)      
+
 
     def displaySCampDetections(self):
 
@@ -345,7 +372,7 @@ def cmdline():
     parser.add_argument("--scalemode", default='zscale',
                         help="scalemode to use [default=zscale]")
 
-    parser.add_argument("--SExColor", default='yellow',
+    parser.add_argument("--SExColor", default='blue',
                         help="Color for SExtractor detections [default=blue]")
 
     parser.add_argument("--StarsColor", default='yellow',
@@ -385,13 +412,26 @@ def cmdline_coadd():
                         help="Color for SExtractor detections [default=blue]")
 
     parser.add_argument("--StarsColor", default='red',
-                        help="Color for Star's catalog [default=yellow]")
+                        help="Color for Star's catalog [default=red]")
 
     parser.add_argument("--ShowWeight", action='store_true',default=False,
                         help="Show the weight plane [default=False]")
 
     parser.add_argument("--imaflags", default=False, action='store_true',
                         help="Color for SExtractor detections [default=blue]")
+
+    parser.add_argument("--lowSN", default=False, action='store_true',
+                        help="Show low SN detections")
+
+    parser.add_argument("--lowSNColor", default='green',
+                        help="Color for low signal-to-noise [default=green]")
+
+    parser.add_argument("--lowSNthresh", default=10.0, type=float,
+                        help="Limit for low SN threshold")
+
+    parser.add_argument("--frame", default=1, type=int,
+                        help="Frame for SCI image")
+    
 
     args = parser.parse_args()
 
