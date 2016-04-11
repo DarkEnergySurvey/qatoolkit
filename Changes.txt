@@ -63,3 +63,9 @@
 - version 0.1.9:
   . updates from Robert G. to the assess_SE_products.py
   . added script bin/display_CoaddDES to display coadd MEF and catalogs using ds9 tools
+
+- version 0.2.3:
+  . To be made. 
+  . Keeping only assesment-related task in qatoolkit
+  . Major clean up. Move display-related tasks to "desdisplay" and
+  png-projection one to projectDECam.

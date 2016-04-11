@@ -1,17 +1,8 @@
-__author__  = "Felipe Menanteau, Robert Gruendl"
+__author__  = "Robert Gruendl"
 __version__ = '0.2.2'
 version = __version__
 
 """
  A collection of Python-based QA tools/modules for DESDM 
 """
-import projectlib
-import projectlib_fromlist
-import focuschips
-import display
-import ds9DES
-# Other potential ways of loading things
-#from . import projectlib
-#from projectlib import project_DECam
-#from projectlib import cmdline
 print "# Module %s v%s is loaded" % (__name__,__version__)
