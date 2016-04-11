@@ -17,11 +17,11 @@ args = display.cmdline_coadd()
 d = display.DisplayDES(**args.__dict__) # Pass it as a dictionary, as required by fuctions/classes
 
 # Display Science
-d.showSCI()
+d.showSCI(args.frame)
 
 # Display Catalog
 d.readCat()
-d.displayCatalog(imaflags=args.imaflags)
+d.displayCatalog(imaflags=args.imaflags,lowSN=args.lowSN)
 
 ## Display Weight if required
 if args.ShowWeight:
