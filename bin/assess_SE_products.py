@@ -889,7 +889,6 @@ if __name__ == "__main__":
             e.tradeg, e.tdecdeg,
             e.airmass,
             e.exptime,
-            e.propid,
             e.program,
             e.field
         from {schema:s}exposure e
@@ -907,23 +906,22 @@ if __name__ == "__main__":
     cur.execute(query)
     desc = [d[0].lower() for d in cur.description]
 
+#    print desc
+#
+#    for key in exp_rec:
+#        print key,exp_rec[key]
+
     num_exp_recs=0
     for row in cur:
         num_exp_recs=num_exp_recs+1
         if (num_exp_recs > 1):
             print "# WARNING: multiple exposure records found for this exposure? (num_exp_recs=",num_exp_recs,")"
         rowd = dict(zip(desc, row))
-        exp_rec['exp_fname']=rowd['exp_fname']
-        exp_rec['dateobs']=rowd['date_obs']
-        exp_rec['obstype']=rowd['obstype']
-        exp_rec['telra']=rowd['telra']
-        exp_rec['teldec']=rowd['teldec']
-        exp_rec['ra']=rowd['tradeg']
-        exp_rec['dec']=rowd['tdecdeg']
-        exp_rec['object']=rowd['object']
-        exp_rec['mjd_obs']=rowd['mjd_obs']
+#       The following seem to be OK to grab wholesale
+        for key in ['nite','exp_fname','date_obs','obstype','telra','teldec','tradeg','tdecdeg','object','mjd_obs']:
+            exp_rec[key]=rowd[key]
 #
-#       And then there are some more sanity checks.
+#       And then there are some that need more sanity checks.
 #
         if (rowd['band'] is None):
             if (exp_rec["band"] != 'Unknown'):
@@ -1110,8 +1108,8 @@ if __name__ == "__main__":
 #
     if ((len(img_ra) < 2)or(len(img_dec) < 2)):
         print "Warning: No CCD corners present in database for these items"
-        exp_rec["ra_cen"]=exp_rec["ra"]
-        exp_rec["dec_cen"]=exp_rec["dec"]
+        exp_rec['ra_cen']=exp_rec['tradeg']
+        exp_rec['dec_cen']=exp_rec['tdecdeg']
     else:
         if ((len(img_ra) < (4*exp_rec["numccd"]))or(len(img_dec) < (4*exp_rec["numccd"]))):
             print "Warning: Some CCDs may be missing RA/DEC corners)! Working with what was present..."
@@ -1132,8 +1130,8 @@ if __name__ == "__main__":
         dec_cen=img_dec.mean()
         if (ra_cen < 0.0):
             ra_cen=ra_cen+360.0
-        exp_rec["ra_cen"]=ra_cen
-        exp_rec["dec_cen"]=dec_cen
+        exp_rec['ra_cen']=ra_cen
+        exp_rec['dec_cen']=dec_cen
 
 #
 #   Denote whether or not this is a special case where (where exposure straddles RA=0h
@@ -1146,19 +1144,20 @@ if __name__ == "__main__":
 #   Report exposure information for current 
 #
     print "########################################"
-    print "#   date_obs: ",exp_rec["dateobs"]
-    print "#   Exposure: ",exp_rec["expnum"]
-    print "#       Band: ",exp_rec["band"]
-    print("#    Exptime: {:.1f} ".format(exp_rec["exptime"]))
-    print "#      BUNIT: ",exp_rec["bunit"]
+    print "#   date_obs: ",exp_rec['date_obs']
+    print "#       Nite: ",exp_rec['nite']
+    print "#   Exposure: ",exp_rec['expnum']
+    print "#       Band: ",exp_rec['band']
+    print("#    Exptime: {:.1f} ".format(exp_rec['exptime']))
+    print "#      BUNIT: ",exp_rec['bunit']
     print "# "
-    print "#    Obstype: ",exp_rec["obstype"]
-    print "#     Object: ",exp_rec["object"]
-    print "#    Program: ",exp_rec["program"]
+    print "#    Obstype: ",exp_rec['obstype']
+    print "#     Object: ",exp_rec['object']
+    print "#    Program: ",exp_rec['program']
     print "# "
-    print("#      Telescope(Ra,Dec): {:9.5f} {:9.5f} ".format(exp_rec["ra"],exp_rec["dec"]))
+    print("#      Telescope(Ra,Dec): {:9.5f} {:9.5f} ".format(exp_rec['tradeg'],exp_rec['tdecdeg']))
     print "#"
-    print("# Image Centroid(Ra,Dec): {:9.5f} {:9.5f} ".format(exp_rec["ra_cen"],exp_rec["dec_cen"]))
+    print("# Image Centroid(Ra,Dec): {:9.5f} {:9.5f} ".format(exp_rec['ra_cen'],exp_rec['dec_cen']))
     print "#"
     print "# "
     if (astrom_good):
@@ -1167,10 +1166,10 @@ if __name__ == "__main__":
         print "# WARNING: Probable astrometric solution failure"
     print "# Astrometry summary:"
     print("#                    high S/N      ")
-    print("#        ndets: {:d} ".format(exp_rec["astrom_ndets"]))
-    print("#         chi2: {:.2f} ".format(exp_rec["astrom_chi2"]))
-    print("#   astrom_sig: {:7.4f},{:7.4f} ".format(exp_rec["astrom_sig1"],exp_rec["astrom_sig2"]))
-    print("#   astrom_off: {:7.4f},{:7.4f} ".format(exp_rec["astrom_off1"],exp_rec["astrom_off2"]))
+    print("#        ndets: {:d} ".format(exp_rec['astrom_ndets']))
+    print("#         chi2: {:.2f} ".format(exp_rec['astrom_chi2']))
+    print("#   astrom_sig: {:7.4f},{:7.4f} ".format(exp_rec['astrom_sig1'],exp_rec['astrom_sig2']))
+    print("#   astrom_off: {:7.4f},{:7.4f} ".format(exp_rec['astrom_off1'],exp_rec['astrom_off2']))
     print "#"
     print "# PSF summary:"
     print("# median(FWHM): {:.3f} ".format(exp_rec['psfex_fwhm']))
