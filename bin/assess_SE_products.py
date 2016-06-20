@@ -12,6 +12,148 @@ Arguments:
      
 """
 
+########################
+def QAplt_cloud( PlotFile, Data, cat,  band, astrom_good, verbose=False):
+    """
+    Function to produce a QA plot showing comparison between data and a reference
+    catalog.  Plots show the diagnosed amount of atmospheric opacity (extinction) 
+    at the time of the observation.
+
+    inputs:
+        PlotFile:   filename where the output plot will be written (can include 
+                        relative path)
+        Data:       Custom dictionary that holds data for the plots.  These include:
+                        nmatch:  (integer) number of matches to the reference catalog
+
+                        mag_des: list of rough measured DES magnitude
+                        mag_cat: list of associated reference catalog data
+                        mag_diff: the difference between the two
+                        mag_des_reject: points in mag_des that were outlier rejects
+                        mag_cat_reject: analogous points in mag_cat
+                        mag_diff_reject: analogous points in mag_diff
+
+                        mindes,maxdes: (float) range of data being plotted
+                        med_magdiff:   (float) median magnitide offset/difference 
+                                       between objects and refernce catalog
+
+                    For failure cases (number of stars < 100) the following are not needed:
+                        mag_des_reject,mag_cat_reject, mag_diff_reject
+                        mindes,maxdes,med_magdiff
+
+        cat:        Name of the reference catalog (string for plotting axis)
+        band:       Band of observations
+        astrom_good: Flag that causes overplotting of text indicating an astrometric failure
+        verbose:    Provide verbose output (curently there is none).
+
+    OUTPUT: 
+        Nothing is returned to the calling program (a PNG file is written where directed)
+    """
+
+    plt.figure()
+    plt.subplot(2,1,1)
+    if (Data['nmatch']<100):
+#       Case no fit
+        plt.scatter(Data['mag_des'],Data['mag_cat'],marker='.',color='blue')
+        plt.plot([10,18],[10,18],color='red',linewidth=1)
+    else:
+#       Case normal
+        plt.scatter(Data['mag_des'],Data['mag_cat'],marker='.',color='blue')
+        if (len(Data['mag_des_reject']) > 0):
+            plt.scatter(Data['mag_des_reject'],Data['mag_cat_reject'],marker='.',color='magenta')
+        plt.plot([Data['mindes'],Data['maxdes']],[Data['mindes'],Data['maxdes']],color='red',linewidth=1)
+
+    plt.xlabel('DES MAG_AUTO({:s})'.format(band))
+    if (band in ["u","g"]):
+        plt.ylabel('%s g\'' % cat.upper() )
+    elif (band in ["r","VR"]):
+        plt.ylabel('%s r\'' % cat.upper() )
+    elif (band in ["i","z","Y"]):
+        plt.ylabel('%s i\'' % cat.upper() )
+    else:
+        plt.ylabel('%s [unknown]' % cat.upper() )
+    plt.text(10.5,17,'Number of %s matches: %d' % (cat.upper(),Data['nmatch']))
+    if (not(astrom_good)):
+        plt.text(10.5,16,'Probable failure to find an astrometric solution')
+#
+#   Second panel
+#
+    plt.subplot(2,1,2)
+    if (Data['nmatch']<100):
+#       Case no fit
+        plt.plot([10,18],[0,0],color='red',linewidth=3)
+    else:
+#       Case normal
+        plt.scatter(Data['mag_des'],Data['mag_diff'],marker='.',color='blue')
+        if (len(Data['mag_des_reject']) > 0):
+            plt.scatter(Data['mag_des_reject'],Data['mag_diff_reject'],marker='.',color='magenta')
+        plt.plot([Data['mindes'],Data['maxdes']],[Data['med_magdiff'],Data['med_magdiff']],color='red',linewidth=3)
+
+    plt.xlabel('DES MAG_AUTO(%s)' % band)
+    if (band in ["u","g"]):
+        plt.ylabel('DES - %s g\'' % cat.upper() )
+    elif (band in ["r","VR"]):
+        plt.ylabel('DES - %s r\'' % cat.upper() )
+    elif (band in ["i","z","Y"]):
+        plt.ylabel('DES - %s i\'' % cat.upper() )
+    else:
+        plt.ylabel('DES - %s [unknown]' % cat.upper() )
+    plt.savefig(PlotFile)
+
+    return 0
+
+
+########################
+def QAplt_maghist(PlotFileName,Data,band,astrom_good,verbose=False):
+    """
+    Function to produce a QA plot showing luminosity function of objects in the
+    exposure.
+
+    inputs:
+        PlotFile:   filename where the output plot will be written (can include 
+                        relative path)
+        Data:       Custom dictionary that holds data for the plots.
+                        nobj:        (integer) total number of objects 
+                                         contributing to the histogram
+                        bins:        list of magnitude bins
+                        mag_hist:    list of number of objects per bin
+                        magerr_hist: list of median value of magerr for 
+                                        objects in each magnitude bin
+                    For failure cases (nobj < 100) no data from lists are plotted
+
+        band:       Band of observations
+        astrom_good: Flag that causes overplotting of text indicating an astrometric failure
+        verbose:    Provide verbose output (curently there is none).
+
+    OUTPUT: 
+        Nothing is returned to the calling program (a PNG file is written where directed)
+    """
+
+
+    plt.figure()
+    plt.subplot(2,1,1)
+#    plt.scatter(xplt,yplt1,marker='.',color='blue')
+    plt.axis([8,26,0.5,10000])
+    if (Data['nobj']>10):
+        plt.semilogy(Data['bins'],Data['mag_hist'],marker='.',ls='None',color='blue')
+    else:
+        plt.text(9.,9000.,'Number of objects ({:d}) insufficient for histogram.'.format(Data['nobj']))
+    if (not(astrom_good)):
+        plt.text(9.,7800,'Probable failure to find an astrometric solution')
+    plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
+    plt.ylabel('# objects')
+#
+#   Second panel showing median MAGERR per bin
+#    
+    plt.subplot(2,1,2)
+    if (Data['nobj']>10):
+        plt.scatter(Data['bins'],Data['magerr_hist'],marker='.',color='blue')
+    plt.axis([8,26,-0.01,0.5])
+    plt.xlabel('DES MAG_AUTO({:s})'.format(band))
+    plt.ylabel('median(MAGERR_AUTO({:s})'.format(band))
+    plt.savefig(PlotFileName)
+
+    return 0
+
 #######################################################################
 def MkCatDict(CATcol,cols_retrieve):
     """
@@ -61,8 +203,8 @@ def binsrch_crosscorr_cat(ra,dec,catalog,match_rad):
     dec       = Dec used for comparison
     catalog   = is a list containing records(dictionaries) that have an "ra" and "dec" entries 
                 along with associated information.  NOTE: This routine assumes that the catalog
-                is RA-ordered so that a binary search can be used to find the small range of entries
-        that need to be checked
+                is RA-ordered so that a binary search can be used to find the small range of 
+                entries that need to be checked
     match_rad = minimum distance for an acceptable match (in seconds of arc).
     """
 
@@ -200,9 +342,10 @@ if __name__ == "__main__":
     db_table="firstcut_eval"
 
     parser = argparse.ArgumentParser(description='Assess whether the pipeline products of a FIRSTCUT/FINALCUT processing meet survey quality metrics.')
-    parser.add_argument('-R', '--ReqNum',   action='store', type=str, default=None, help='Processing request number.')
-    parser.add_argument('-U', '--UnitName', action='store', type=str, default=None, help='Unit Name.')
-    parser.add_argument('-A', '--AttNum',   action='store', type=str, default=None, help='Attempt Number.')
+    parser.add_argument('-i', '--attid',   action='store', type=str, default=None, help='Processing attempt id', required=True)
+#    parser.add_argument('-R', '--ReqNum',   action='store', type=str, default=None, help='Processing request number.')
+#    parser.add_argument('-U', '--UnitName', action='store', type=str, default=None, help='Unit Name.')
+#    parser.add_argument('-A', '--AttNum',   action='store', type=str, default=None, help='Attempt Number.')
     parser.add_argument('-C', '--CamSym',   action='store', type=str, default='D', help='CamSym (default=\"D\").')
     parser.add_argument('-l', '--list',     action='store', type=str, default=None, 
                         help='Optional list of catalogs for the assessment (otherwise query for "red_finalcut" catalogs associated with the Request Unit Attempt)')
@@ -219,6 +362,7 @@ if __name__ == "__main__":
     parser.add_argument('-q', '--qaplot',   action='store_true', default=False, help='Flag to generate QA plots.')
     parser.add_argument('-d', '--delimiter', action='store',  default=',', help='Optional delimiter for CSV (default=,)')
     parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra (debug) messages to stdout')
+    parser.add_argument('--format_query',  action='store_true', default=False, help='Print queries with formatting (default=False)')
     parser.add_argument('-s', '--section', action='store', type=str, default=None, help='section of .desservices file with connection info')
     parser.add_argument('-S', '--Schema', action='store', type=str, default=None, help='Schema')
 
@@ -232,19 +376,19 @@ if __name__ == "__main__":
 ##                         help="Flag to include magnitude limit calculation.")
 ##############################################################################
 #   Arguments are defined... some extra checks before we begin.
-    if ((args.ReqNum is None)or(args.UnitName is None)or(args.AttNum is None)):
-        parser.print_help()
-        exit(1)
-    ReqNum=args.ReqNum
-    UnitName=args.UnitName
-    AttNum=args.AttNum
+#    if ((args.ReqNum is None)or(args.UnitName is None)or(args.AttNum is None)):
+#    if (args.PFW_Attempt_ID is None):
+#        parser.print_help()
+#        exit(1)
+    PFW_Attempt_ID=args.attid
+#    ReqNum=args.ReqNum
+#    UnitName=args.UnitName
+#    AttNum=args.AttNum
 
     print("####################################################")
     print("# Note this execution requests:")
     print("# ")
-    print("# Evaluation of REQNUM={:s}  ".format(ReqNum))
-    print("#             UNITNAME={:s}  ".format(UnitName))
-    print("#               ATTNUM={:s}  ".format(AttNum))
+    print("# Evaluation of PFW_attempt_id={:s}  ".format(args.attid))
     print("# ")
 #
 #   Obtain Schema (if user specified).
@@ -282,16 +426,10 @@ if __name__ == "__main__":
         print("# QA Plots requested (with root filename: {:s}).".format(args.froot))
         print("# ")
 
-
 #
 #   Setup for database interactions (through despydb)
 #
-
-    try:
-        desdmfile = os.environ["des_services"]
-    except KeyError:
-        desdmfile = None
-    dbh = despydb.desdbi.DesDbi(desdmfile,args.section)
+    dbh = despydb.desdbi.DesDbi(None,args.section)
     cur = dbh.cursor()
 
 #################################################
@@ -370,10 +508,10 @@ if __name__ == "__main__":
 #   Values *_mag_corr (assume no extinction correction)
 #   Values *_kmag_corr (assume a k*airmass correction)
 #
-    apass_mag_corr={"u":3.5,"g":0.205,"r":0.128,"i":0.112,"z":0.0,"Y":0.0,"VR":0.0}
-    apass_kmag_corr={"u":0.0,"g":0.000,"r":0.000,"i":0.000,"z":0.0,"Y":0.0,"VR":0.0}
-    nomad_mag_corr={"u":3.65,"g":0.341,"r":0.235,"i":1.398,"z":1.201,"Y":1.083,"VR":0.0}
-    nomad_kmag_corr={"u":0.0,"g":0.111,"r":0.109,"i":1.289,"z":1.139,"Y":1.022,"VR":0.0}
+    cat_mag_corr={"apass":{"u":3.5,"g":0.205,"r":0.128,"i":0.112,"z":0.0,"Y":0.0,"VR":0.0},
+                  "nomad":{"u":3.65,"g":0.341,"r":0.235,"i":1.398,"z":1.201,"Y":1.083,"VR":0.0}}
+    cat_kmag_corr={"apass":{"u":0.0,"g":0.000,"r":0.000,"i":0.000,"z":0.0,"Y":0.0,"VR":0.0},
+                  "nomad":{"u":0.0,"g":0.111,"r":0.109,"i":1.289,"z":1.139,"Y":1.022,"VR":0.0}}
 #
 #   NOMAD B-mag correction
 #
@@ -444,32 +582,41 @@ if __name__ == "__main__":
     cat_fpath=[]
     if (args.list is None):
 #
-#       If no list of catalogs was provided (--list) then go figure out whether they exist.
+#       If no list of catalogs was provided (--list) then go figure out whether they exist based on the PFW_Attempt_ID
 #
-        queryitems = ["wgb.filename","wgb.filetype","wgb.exec_name","task.status", "fai.path", "oa.root","c.ccdnum"]
-        coldict={}
-        for index, item in enumerate(queryitems):
-            coldict[item]=index
-        querylist = ",".join(queryitems)
-        query = """select %s from %swgb wgb, %stask task, %sfile_archive_info fai, %sops_archive oa, %scatalog c where wgb.exec_task_id=task.id and wgb.reqnum=%s and wgb.unitname='%s' and wgb.attnum=%s and wgb.filetype='cat_finalcut' and fai.filename=wgb.filename and c.filename=wgb.filename and oa.name=fai.archive_name order by task.start_time """ % (querylist,db_Schema,db_Schema,db_Schema,db_Schema,db_Schema,ReqNum,UnitName,AttNum)
+        query = """
+            select c.filename as filename,
+                c.filetype as filetype,
+                fai.path as path,
+                oa.root as root,
+                c.ccdnum as ccdnum
+            from {schema:s}file_archive_info fai, {schema:s}ops_archive oa, {schema:s}catalog c 
+            where c.pfw_attempt_id={aid:} 
+                and c.filetype='cat_finalcut' 
+                and fai.filename=c.filename 
+                and oa.name=fai.archive_name 
+            """.format(schema=db_Schema,aid=PFW_Attempt_ID)
 
-        print "# Executing initial query for catalogs "
-        if args.verbose:
-            print("# {:s}".format(query))
+        if (args.verbose):
+            print "# Executing initial query for catalogs "
+            if (args.format_query):
+                print("# example query = {:s}".format(query))
+            else:
+                print("# example query ={:s} ".format(" ".join([d.strip() for d in query.split('\n')])))
+
         cur.arraysize = 1000 # get 1000 at a time when fetching
         cur.execute(query)
-#        desc = [d[0].lower() for d in cur.description]
-#        print desc
- 
-        for item in cur:
-            if (item[coldict["task.status"]]==0):
-                cat_fname.append(item[coldict["wgb.filename"]])
-                cat_fpath.append(os.path.join(item[coldict["oa.root"]],item[coldict["fai.path"]],item[coldict["wgb.filename"]]))
+        desc = [d[0].lower() for d in cur.description]
+        for row in cur:
+            rowd = dict(zip(desc, row))
+            cat_fname.append(rowd['filename'])
+            cat_fpath.append(os.path.join(rowd['root'],rowd['path'],rowd['filename']))
     else:
 #
 #       Open list file and proceed.
 #
-        print "# Using list of files/catalogs to obtain objects from exposure"
+        if (args.verbose):
+            print "# Using list of files/catalogs to obtain objects from exposure"
         if (os.path.isfile(args.list)):
             f_cat=open(args.list,'r')
             for line in f_cat:
@@ -481,151 +628,159 @@ if __name__ == "__main__":
                     cat_fpath.append(columns[0])
 #                   print columns[0]
             f_cat.close()
-    print "# Total number of catalogs/CCDs identified: ",len(cat_fpath)
+    if (args.verbose):
+        print "# Total number of catalogs/CCDs identified: ",len(cat_fpath)
+        print "# "
+
 ##############################################################################
 #   Now that a starting point has been established...
 #   Obtain associated DB information for each catalog/CCD.
 # 
-    queryitems = ["i.filename","i.expnum","i.band","i.ccdnum","i.airmass","i.exptime","i.fwhm","i.elliptic","i.skybrite","i.skysigma","i.scampflg","i.gaina","i.gainb","i.ra_cent","i.dec_cent","i.rac1","i.rac2","i.rac3","i.rac4","i.decc1","i.decc2","i.decc3","i.decc4"]
-    coldict={}
-    for index, item in enumerate(queryitems):
-        coldict[item]=index
-    querylist = ",".join(queryitems)
-
     ccd_info={}
     num_ccd_verbose=0
     max_ccd_verbose=1
-    print "# Executing query(s) to obtain image level metadata and QA values "
-    for index,tmp_fname in enumerate(cat_fname):
-        query = """select %s from %simage i, %swdf wdf where i.filename=wdf.parent_name and wdf.child_name='%s' """ % (querylist,db_Schema,db_Schema,cat_fname[index])
+    if (args.verbose):
+        print "# Executing query(s) to obtain image level metadata and QA values "
+
+    for index, tmp_fname in enumerate(cat_fname):
+        query = """
+            select i.filename as img_fname,
+                i.expnum,
+                i.band,
+                i.ccdnum,
+                i.airmass,
+                i.exptime,
+                i.fwhm as fwhm_old,
+                i.elliptic as elli_old,
+                i.skybrite,
+                i.skysigma,
+                i.gaina,i.gainb,
+                i.ra_cent,i.dec_cent,
+                i.rac1,i.rac2,i.rac3,i.rac4,
+                i.decc1,i.decc2,i.decc3,i.decc4
+            from {schema:s}image i, {schema:s}catalog c 
+            where i.filetype='red_immask' 
+                and c.filename='{fname:s}' 
+                and c.pfw_attempt_id=i.pfw_attempt_id 
+                and c.expnum=i.expnum 
+                and c.ccdnum=i.ccdnum 
+            """.format(schema=db_Schema,fname=cat_fname[index])
+
         if ((args.verbose)and(num_ccd_verbose < max_ccd_verbose)):
-            print("# {:s}".format(query))
+            if (args.format_query):
+                print("# example query = {:s}".format(query))
+            else:
+                print("# example query ={:s} ".format(" ".join([d.strip() for d in query.split('\n')])))
             num_ccd_verbose=num_ccd_verbose+1
+
         cur.arraysize = 1000 # get 1000 at a time when fetching
         cur.execute(query)
+        desc = [d[0].lower() for d in cur.description]
 
-        for item in cur:
-            tmp_dict={}
-            tmp_dict["cat_fname"]=cat_fname[index]
-            tmp_dict["cat_fpath"]=cat_fpath[index]
-            tmp_dict["img_fname"]=item[coldict["i.filename"]]
-            tmp_dict["expnum"]=item[coldict["i.expnum"]]
-            if (item[coldict["i.band"]] is None):
-                tmp_dict["band"]='Unknown'
-                tmp_dict["iband"]=-1
+        for row in cur:
+            rowd = dict(zip(desc, row))
+
+            ccdnum=int(rowd['ccdnum'])
+            ccd_info[ccdnum]=rowd
+#
+#           Add entries for filename, filepath, iband 
+#           Check entries that are sometimes malformed or null
+#
+            ccd_info[ccdnum]["cat_fname"]=cat_fname[index]
+            ccd_info[ccdnum]["cat_fpath"]=cat_fpath[index]
+            if (ccd_info[ccdnum]['band'] is None):
+                ccd_info[ccdnum]['band']='Unknown'
+                ccd_info[ccdnum]['iband']=-1
             else:
-                tmp_dict["band"]=item[coldict["i.band"]]
-                tmp_dict["iband"]=band2i[item[coldict["i.band"]]]
-            if (item[coldict["i.gaina"]] is None):
-                tmp_dict["gaina"]=-1.
+                ccd_info[ccdnum]['iband']=band2i[ccd_info[ccdnum]['band']]
+
+            if (ccd_info[ccdnum]['gaina'] is None):
+                ccd_info[ccdnum]['gaina']=-1.
                 print "# Warning: Null found for GAINA"
-            else:
-                tmp_dict["gaina"]=float(item[coldict["i.gaina"]])
-            if (item[coldict["i.gainb"]] is None):
-                tmp_dict["gainb"]=-1.
+
+            if (ccd_info[ccdnum]['gainb'] is None):
+                ccd_info[ccdnum]['gainb']=-1.
                 print "# Warning: Null found for GAINB"
-            else:
-                tmp_dict["gainb"]=float(item[coldict["i.gainb"]])
-            tmp_dict["ccdnum"]=int(item[coldict["i.ccdnum"]])
-            if (item[coldict["i.airmass"]] is None):
-                tmp_dict["airmass"]=1.2
+
+            if (ccd_info[ccdnum]['airmass'] is None):
+                ccd_info[ccdnum]['airmass']=1.2
                 print "# Warning: Null found for AIRMASS (default to 1.2)"
-            else:
-                tmp_dict["airmass"]=float(item[coldict["i.airmass"]])
-            tmp_dict["exptime"]=float(item[coldict["i.exptime"]])
-            tmp_dict["fwhm_old"]=pixsize*float(item[coldict["i.fwhm"]])
-            tmp_dict["elli_old"]=float(item[coldict["i.elliptic"]])
-#
-            if ((item[coldict["i.rac1"]] is None)or(item[coldict["i.rac2"]] is None)or(item[coldict["i.rac3"]] is None)or(item[coldict["i.rac4"]] is None)):
+
+            if ((ccd_info[ccdnum]['rac1'] is None)or(ccd_info[ccdnum]['rac2'] is None)or
+                (ccd_info[ccdnum]['rac3'] is None)or(ccd_info[ccdnum]['rac4'] is None)):
                 print "# Warning: Null found among RAC1-4"
-                tmp_dict["img_ra"]=[]
+                ccd_info[ccdnum]['img_ra']=[]
             else:
-                tmp_dict["img_ra"]=[float(item[coldict["i.rac1"]]),float(item[coldict["i.rac2"]]),float(item[coldict["i.rac3"]]),float(item[coldict["i.rac4"]])]
+                ccd_info[ccdnum]['img_ra']=[ccd_info[ccdnum]['rac1'],ccd_info[ccdnum]['rac2'],ccd_info[ccdnum]['rac3'],ccd_info[ccdnum]['rac4']]
 #
-            if ((item[coldict["i.decc1"]] is None)or(item[coldict["i.decc2"]] is None)or(item[coldict["i.decc3"]] is None)or(item[coldict["i.decc4"]] is None)):
+            if ((ccd_info[ccdnum]['decc1'] is None)or(ccd_info[ccdnum]['decc2'] is None)or
+                (ccd_info[ccdnum]['decc3'] is None)or(ccd_info[ccdnum]['decc4'] is None)):
                 print "# Warning: Null found among DECC1-4"
-                tmp_dict["img_dec"]=[]
+                ccd_info[ccdnum]['img_dec']=[]
             else:
-                tmp_dict["img_dec"]=[float(item[coldict["i.decc1"]]),float(item[coldict["i.decc2"]]),float(item[coldict["i.decc3"]]),float(item[coldict["i.decc4"]])]
+                ccd_info[ccdnum]['img_dec']=[ccd_info[ccdnum]['decc1'],ccd_info[ccdnum]['decc2'],ccd_info[ccdnum]['decc3'],ccd_info[ccdnum]['decc4']]
+
+#            ccd_info[ccdnum]["exptime"]=float(item[coldict["i.exptime"]])
+            ccd_info[ccdnum]["fwhm_old"]=pixsize*float(ccd_info[ccdnum]["fwhm_old"])
+#            ccd_info[ccdnum]["elli_old"]=float(item[coldict["i.elliptic"]])
 #
 #           sbrite_good and sbrite_lim are defined in cts/sec
 #           Therefore:
 #              If exposure time is present then use to normalize brightness to a per second quantity
 #              If gains are present then use to express brightness in counts (rather than electrons)
 #
-            if (tmp_dict["exptime"]>0.01):
-                efactor=tmp_dict["exptime"]
+            if (ccd_info[ccdnum]['exptime']>0.01):
+                efactor=ccd_info[ccdnum]['exptime']
             else:
                 efactor=1.0
-#
-            gtesta=tmp_dict["gaina"]-1.
-            gtestb=tmp_dict["gainb"]-1.
+
+            gtesta=ccd_info[ccdnum]['gaina']-1.
+            gtestb=ccd_info[ccdnum]['gainb']-1.
             if ((abs(gtesta)<0.25)and(abs(gtestb)<0.25)):
 #               The case where gains are 1... therefore units are electrons
-                if (args.verbose):
-                    print("# GAINA/B are consistent with units of electrons (GAINA:{:.3f},GAINB:{:.3f})".format(tmp_dict["gaina"],tmp_dict["gainb"]))
                 gfactor=4.0
-                tmp_dict["bunit"]='e-'
+                ccd_info[ccdnum]['bunit']='e-'
+                if (args.verbose):
+                    print("# GAINA/B for ccdnum={:d} are consistent with units of electrons (GAINA:{:.3f},GAINB:{:.3f})".format(
+                        ccdnum,ccd_info[ccdnum]['gaina'],ccd_info[ccdnum]['gainb']))
             else:
 #               The case where gains are not 1... therefore units are already in counts
-                if (args.verbose):
-                    print("# GAINA/B are consistent with units of DN (GAINA:{:.3f},GAINB:{:.3f})".format(tmp_dict["gaina"],tmp_dict["gainb"]))
                 gfactor=1.0
-                tmp_dict["bunit"]='DN'
-            tmp_dict["skyb"]=float(item[coldict["i.skybrite"]])/efactor/gfactor
-            tmp_dict["skys"]=float(item[coldict["i.skysigma"]])/efactor/gfactor
-#
-#
-            if (item[coldict["i.scampflg"]] is None):
-                tmp_dict["sflag"]=2
-            else:
-                tmp_dict["sflag"]=int(item[coldict["i.scampflg"]])
-            ccd_info[tmp_dict["ccdnum"]]=tmp_dict
+                ccd_info[ccdmum]['bunit']='DN'
+                if (args.verbose):
+                    print("# GAINA/B for ccdnum={:d} are consistent with units of DN (GAINA:{:.3f},GAINB:{:.3f})".format(
+                        ccdnum,ccd_info[ccdnum]['gaina'],ccd_info[ccdnum]['gainb']))
+            ccd_info[ccdnum]['skyb']=ccd_info[ccdnum]['skybrite']/efactor/gfactor
+            ccd_info[ccdnum]['skys']=ccd_info[ccdnum]['skysigma']/efactor/gfactor
 
+#            if (ccd_info[ccdnum]['scampflg'] is None):
+#                ccd_info[ccdnum]['sflag']=2
+#            else:
+#                ccd_info[ccdnum]['sflag']=ccd_info[ccdnum]['scampflg']
 
 ##############################################################################
 #   Fill in entries for missing CCDs (if there are any)
-#   Also gather information for the first consistency checks and exposure averaged parameters.
+#   Make consistency checks across CCDs to check that once fragile bits are consistent:
+#       specific checks are: expnum, band, exptime, airmass, bunit 
+#   Form 1-d arrays of RA, DEC (corners) for use when cataloging.
+#   From 1-d arrays of skyb and skys (for eventual b_eff calculation)
+#   Historically 1-d arrays of fwhm and ellipticity [fwhm_old, elli_old]
 #
-    fwhm_old=[]
-    elli_old=[]
-    skyb=[]
-    skys=[]
-    img_ra=[]
-    img_dec=[]
-    bunit_chk=[]
-    band_chk=[]
-    expnum_chk=[]
-    exptime_chk=[]
-    airmass_chk=[]
-    scamp_chk=[]
-    numccd=0
-    
-    for iccd in range(1,63):
-        if iccd in ccd_info:
-#            print iccd,ccd_info[iccd]
-            ccd_info[iccd]['data']=True
-            numccd=numccd+1
-            bunit_chk.append(ccd_info[iccd]['bunit'])
-            band_chk.append(ccd_info[iccd]['band'])
-            expnum_chk.append(ccd_info[iccd]['expnum'])
-            exptime_chk.append(ccd_info[iccd]['exptime'])
-            airmass_chk.append(ccd_info[iccd]['airmass'])
-            scamp_chk.append(ccd_info[iccd]['sflag'])
-            fwhm_old.append(ccd_info[iccd]['fwhm_old'])
-            elli_old.append(ccd_info[iccd]['elli_old'])
-            skyb.append(ccd_info[iccd]['skyb'])
-            skys.append(ccd_info[iccd]['skys'])
-            for ra_val in ccd_info[iccd]['img_ra']:
-                img_ra.append(ra_val)
-            for dec_val in ccd_info[iccd]['img_dec']:
-                img_dec.append(dec_val)
-        else:
-            tmp_dict={}
-            tmp_dict['data']=False
-            ccd_info[iccd]=tmp_dict
-    exp_rec["numccd"]=numccd
-    exp_rec["scamp_sum"]=sum(scamp_chk)
+    bunit_chk=[ccd_info[k]['bunit'] for k in ccd_info]
+    band_chk=[ccd_info[k]['band'] for k in ccd_info]
+    expnum_chk=[ccd_info[k]['expnum'] for k in ccd_info]
+    exptime_chk=[ccd_info[k]['exptime'] for k in ccd_info]
+    airmass_chk=[ccd_info[k]['airmass'] for k in ccd_info]
+
+    img_ra=numpy.reshape(numpy.array([ccd_info[k]['img_ra'] for k in ccd_info]),-1)
+    img_dec=numpy.reshape(numpy.array([ccd_info[k]['img_dec'] for k in ccd_info]),-1)
+    skyb=numpy.array([ccd_info[k]['skyb'] for k in ccd_info])
+    skys=numpy.array([ccd_info[k]['skys'] for k in ccd_info])
+    fwhm_old=numpy.array([ccd_info[k]['fwhm_old'] for k in ccd_info])
+    elli_old=numpy.array([ccd_info[k]['elli_old'] for k in ccd_info])
+
+    exp_rec['numccd']=len(expnum_chk)
+
 ##############################################################################
 #   Perform the actual checks (and set exposure level values when these pass muster.
 #   First check exptime.
@@ -656,7 +811,8 @@ if __name__ == "__main__":
             print "WARNING: No airmass?: "
             print "WARNING: Using defualt setting airmass: 1.2"
             exp_rec['airmass']=1.2
-    exp_rec['airmass']=uniq_airmass_chk[0]
+    else:
+        exp_rec['airmass']=uniq_airmass_chk[0]
 #
 #   Now check bunit for consistency
 #
@@ -677,7 +833,8 @@ if __name__ == "__main__":
         print "Abort: Other than one band identified?: ",uniq_band_chk
         exit(1)
     else:
-        if (uniq_band_chk[0] in ['u','g','r','i','z','Y','VR']):
+#        if (uniq_band_chk[0] in ['u','g','r','i','z','Y','VR']):
+        if (uniq_band_chk[0] in band2i):
             exp_rec['band']=uniq_band_chk[0]
         else:
             print "Abort: Unsupported value for band?: ",uniq_band_chk[0]
@@ -693,107 +850,113 @@ if __name__ == "__main__":
 ##############################################################################
 #   Calculated exposure level values (old FWHM, old Ellipticity, Sky Brightness and Sky Sigma)
 #
-    afwhm_old=numpy.array(fwhm_old) 
-    aelli_old=numpy.array(elli_old) 
-    askyb=numpy.array(skyb)
-    askys=numpy.array(skys)
-    if (len(afwhm_old) > 0):
-        exp_rec["fwhm_img"]=afwhm_old.mean()
+    if (len(fwhm_old) > 0):
+        exp_rec["fwhm_img"]=fwhm_old.mean()
     else:
         exp_rec["fwhm_img"]=-1.0
-    if (len(aelli_old) > 0):
-        exp_rec["ellip_avg"]=aelli_old.mean()
-        exp_rec["ellip_rms"]=aelli_old.std()
+    if (len(elli_old) > 0):
+        exp_rec["ellip_avg"]=elli_old.mean()
+        exp_rec["ellip_rms"]=elli_old.std()
     else:
         exp_rec["ellip_avg"]=-1.0
         exp_rec["ellip_rms"]=-1.0
-    if (len(askyb) > 0):
-        exp_rec["skyb_avg"]=askyb.mean()
-        exp_rec["skyb_rms"]=askyb.std()
+    if (len(skyb) > 0):
+        exp_rec["skyb_avg"]=skyb.mean()
+        exp_rec["skyb_rms"]=skyb.std()
     else:
         exp_rec["skyb_avg"]=-1.0
         exp_rec["skyb_rms"]=-1.0
-    if (len(askys) > 0):
-        exp_rec["skys_avg"]=askys.mean()
-        exp_rec["skys_rms"]=askys.std()
+    if (len(skys) > 0):
+        exp_rec["skys_avg"]=skys.mean()
+        exp_rec["skys_rms"]=skys.std()
     else:
         exp_rec["skys_avg"]=-1.0
         exp_rec["skys_rms"]=-1.0
-#
-#   Summarize sanity check of CCD level information
-#
-#    if (args.verbose):
-#        for iccd in range(1,63):
-#            if ccd_info[iccd]:
-#                print iccd,ccd_info[iccd]['data']
-#            else:
-#                print iccd,' Still no entry (this should not happen!!!!!!!)'
+
 ###############################################################################
 #   Get more exposure level information
 #
-    queryitems = ["e.filename", "e.expnum", "e.nite", "e.date_obs", "e.time_obs", "e.mjd_obs", "e.obstype", "e.band", "e.camsym", "e.object", "e.telra", "e.teldec", "e.tradeg", "e.tdecdeg", "e.airmass", "e.exptime", "e.propid", "e.program", "e.field" ]
-    querylist = ",".join(queryitems)
-    coldict={}
-    for index, item in enumerate(queryitems):
-         coldict[item]=index
+    query = """
+        select e.filename as exp_fname,
+            e.expnum,
+            e.nite,
+            e.date_obs, e.time_obs, e.mjd_obs,
+            e.obstype, 
+            e.band,
+            e.camsym,
+            e.object,
+            e.telra, e.teldec,
+            e.tradeg, e.tdecdeg,
+            e.airmass,
+            e.exptime,
+            e.propid,
+            e.program,
+            e.field
+        from {schema:s}exposure e
+        where e.expnum={expnum:}
+        """.format(schema=db_Schema,expnum=exp_rec['expnum'])
 
-    query = """select %s from %sexposure e where e.expnum=%s """ % ( querylist, db_Schema, exp_rec['expnum'] )
+    if (args.verbose):
+        print "# Executing query to obtain exposure level metadata"
+        if (args.format_query):
+            print("# query = {:s}".format(query))
+        else:
+            print("# query ={:s} ".format(" ".join([d.strip() for d in query.split('\n')])))
 
-    print "# Executing query to obtain exposure level metadata"
-    if args.verbose:
-        print("# {:s}".format(query))
     cur.arraysize = 1000 # get 1000 at a time when fetching
     cur.execute(query)
+    desc = [d[0].lower() for d in cur.description]
 
     num_exp_recs=0
-    for item in cur:
+    for row in cur:
         num_exp_recs=num_exp_recs+1
         if (num_exp_recs > 1):
             print "# WARNING: multiple exposure records found for this exposure? (num_exp_recs=",num_exp_recs,")"
-        exp_rec["exp_fname"]=item[coldict["e.filename"]]
-        exp_rec["dateobs"]=item[coldict["e.date_obs"]]
-        exp_rec["obstype"]=item[coldict["e.obstype"]]
-        exp_rec["telra"]=item[coldict["e.telra"]]
-        exp_rec["teldec"]=item[coldict["e.teldec"]]
-        exp_rec["ra"]=float(item[coldict["e.tradeg"]])
-        exp_rec["dec"]=float(item[coldict["e.tdecdeg"]])
-        exp_rec["object"]=item[coldict["e.object"]]
-        exp_rec["mjd_obs"]=float(item[coldict["e.mjd_obs"]])
+        rowd = dict(zip(desc, row))
+        exp_rec['exp_fname']=rowd['exp_fname']
+        exp_rec['dateobs']=rowd['date_obs']
+        exp_rec['obstype']=rowd['obstype']
+        exp_rec['telra']=rowd['telra']
+        exp_rec['teldec']=rowd['teldec']
+        exp_rec['ra']=rowd['tradeg']
+        exp_rec['dec']=rowd['tdecdeg']
+        exp_rec['object']=rowd['object']
+        exp_rec['mjd_obs']=rowd['mjd_obs']
 #
 #       And then there are some more sanity checks.
 #
-        if (item[coldict["e.band"]] is None):
+        if (rowd['band'] is None):
             if (exp_rec["band"] != 'Unknown'):
-                print "WARNING: BAND miss-match between exposure-level (Unknown) and image/catalog-level (",exp_rec["band"],") queries.  Using image/cat-result."
+                print("WARNING: BAND miss-match between exposure-level (Unknown) and image/catalog-level ({:s}) queries.  Using image/cat-result.".format(exp_rec['band']))
         else:
-            if (item[coldict["e.band"]] != exp_rec["band"]):
-                print "WARNING: BAND miss-match between exposure-level (",item[coldict["e.band"]],") and image/catalog-level (",exp_rec["band"],") queries.  Using image/cat-result."
+            if (rowd['band'] != exp_rec['band']):
+                print("WARNING: BAND miss-match between exposure-level ({:s}) and image/catalog-level ({:s}) queries.  Using image/cat-result.".format(rowd['band'],exp_rec['band']))
 #
-        if (float(item[coldict["e.exptime"]]) != exp_rec["exptime"]):
-                print "WARNING: EXPTIME miss-match between exposure-level (",item[coldict["e.exptime"]],") and image/catalog-level (",exp_rec["band"],") queries.  Using image/cat-result."
+        if (rowd['exptime'] != exp_rec["exptime"]):
+            print("WARNING: EXPTIME miss-match between exposure-level ({:.1f}) and image/catalog-level ({:.1f}) queries.  Using image/cat-result.".format(rowd['exptime'],exp_rec['exptime']))
 
-        if (item[coldict["e.airmass"]] is None):
-           print "WARNING: AIRMASS miss-match between exposure-level (Unknown) and image/catalog-level (",exp_rec["airmass"],") queries.  Using image/cat-result."
+        if (rowd['airmass'] is None):
+           print("WARNING: AIRMASS miss-match between exposure-level (Unknown) and image/catalog-level ({:.3f}) queries.  Using image/cat-result.".format(exp_rec['airmass']))
         else:
-            if (item[coldict["e.airmass"]] != exp_rec["airmass"]):
-                print "WARNING: AIRMASS miss-match between exposure-level (",item[coldict["e.airmass"]],") and image/catalog-level (",exp_rec["airmass"],") queries.  Using image/cat-result."
+            if (rowd['airmass'] != exp_rec['airmass']):
+                print("WARNING: AIRMASS miss-match between exposure-level ({.3f}) and image/catalog-level ({:.3f}) queries.  Using image/cat-result.".format(rowd['airmass'],exp_rec['airmass']))
 #
 #       Work out whether the exposure is part of the general survey, SN, or other.
 #
-        if (item[coldict["e.program"]]=="survey"):
+        if (rowd['program']=="survey"):
             exp_rec["program"]='survey'
             exp_rec["sn_field"]=False
             exp_rec["survey_field"]=True
-        elif (item[coldict["e.program"]]=="supernova"):
+        elif (rowd['program']=="supernova"):
             exp_rec["program"]='SN'
             exp_rec["sn_field"]=True
             exp_rec["survey_field"]=False
-        elif (item[coldict["e.program"]]=="photom-std-field"):
+        elif (rowd['program']=="photom-std-field"):
             exp_rec["program"]='phot-std'
             exp_rec["sn_field"]=False
             exp_rec["survey_field"]=False
         else:
-            if (exp_rec["obstype"] in ['zero','dark','dome flat','sky flat']):
+            if (exp_rec['obstype'] in ['zero','dark','dome flat','sky flat']):
                 exp_rec["program"]='cal'
                 exp_rec["sn_field"]=False
                 exp_rec["survey_field"]=False
@@ -801,76 +964,118 @@ if __name__ == "__main__":
                 exp_rec["program"]='unknown'
                 exp_rec["sn_field"]=False
                 exp_rec["survey_field"]=False
+
 ###############################################################################
 #   Query to get SCAMP_QA information
 #
-    queryitems = ["q.astromndets_ref_highsn", "q.astromchi2_ref_highsn", "q.astromsigma_ref_highsn_1", "q.astromsigma_ref_highsn_2",
-    "q.astromoffset_ref_highsn_1", "q.astromoffset_ref_highsn_2"]
-    coldict={}
-    for index, item in enumerate(queryitems):
-        coldict[item]=index
-    querylist = ",".join(queryitems)
-    query = """select %s from %sscamp_qa q, %swgb wgb where wgb.reqnum=%s and wgb.unitname='%s' and wgb.attnum=%s and wgb.filetype='xml_scamp' and wgb.filename=q.filename """ % (querylist,db_Schema,db_Schema,ReqNum,UnitName,AttNum)
-    print "# Executing query to obtain astrometry QA for this exposure"
-    if args.verbose:
-        print("# {:s}".format(query))
+    query = """
+        select q.astromndets_ref_highsn as astrom_ndets, 
+            q.astromchi2_ref_highsn as astrom_chi2, 
+            q.astromsigma_ref_highsn_1 as astrom_sig1,
+            q.astromsigma_ref_highsn_2 as astrom_sig2,
+            q.astromoffset_ref_highsn_1 as astrom_off1, 
+            q.astromoffset_ref_highsn_2 as astrom_off2
+        from {schema:s}scamp_qa q, {schema:s}miscfile m 
+        where m.pfw_attempt_id={aid:s} 
+            and m.filetype='xml_scamp' 
+            and m.filename=q.filename 
+        """.format(schema=db_Schema,aid=PFW_Attempt_ID)
+
+    if (args.verbose):
+        print "# Executing query to obtain astrometry QA for this exposure"
+        if (args.format_query):
+            print("# query = {:s}".format(query))
+        else:
+            print("# query ={:s} ".format(" ".join([d.strip() for d in query.split('\n')])))
+
     cur.arraysize = 1000 # get 1000 at a time when fetching
     cur.execute(query)
+    desc = [d[0].lower() for d in cur.description]
 
-    astrom_good=True
     num_ast_recs=0
-    for item in cur:
+    for row in cur:
         num_ast_recs=num_ast_recs+1
         if (num_ast_recs > 1):
-            print "# WARNING: multiple exposure records found for this exposure? (num_ast_recs=",num_ast_recs,")"
-        if (item[coldict["q.astromndets_ref_highsn"]] is None):
-            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromndets_ref_highsn"
-            astrom_good=False
-            exp_rec["astrom_ndets"]=-1
-        else:
-            exp_rec["astrom_ndets"]=int(item[coldict["q.astromndets_ref_highsn"]])
-        if (item[coldict["q.astromchi2_ref_highsn"]] is None):
-            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromchi2_ref_highsn"
-            astrom_good=False
-            exp_rec["astrom_chi2"]=-1.0
-        else:
-            exp_rec["astrom_chi2"]=float(item[coldict["q.astromchi2_ref_highsn"]])
-        if (item[coldict["q.astromsigma_ref_highsn_1"]] is None):
-            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromsigma_ref_highsn_1"
-            astrom_good=False
-            exp_rec["astrom_sig1"]=-1.0
-            sigx=-1.0
-        else:
-            exp_rec["astrom_sig1"]=float(item[coldict["q.astromsigma_ref_highsn_1"]])
-            sigx=float(item[coldict["q.astromsigma_ref_highsn_1"]])
-        if (item[coldict["q.astromsigma_ref_highsn_2"]] is None):
-            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromsigma_ref_highsn_2"
-            astrom_good=False
-            exp_rec["astrom_sig2"]=-1.0
-            sigy=-1.0
-        else:
-            exp_rec["astrom_sig2"]=float(item[coldict["q.astromsigma_ref_highsn_2"]])
-            sigy=float(item[coldict["q.astromsigma_ref_highsn_2"]])
-        if (item[coldict["q.astromoffset_ref_highsn_1"]] is None):
-            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromoffset_ref_highsn_1"
-            astrom_good=False
-            exp_rec["astrom_off1"]=-1.0
-        else:
-            exp_rec["astrom_off1"]=float(item[coldict["q.astromoffset_ref_highsn_1"]])
-        if (item[coldict["q.astromoffset_ref_highsn_2"]] is None):
-            print"# WARNING: Probable astrometric solution failure: No/null value for scamp_qa.astromoffset_ref_highsn_2"
-            astrom_good=False
-            exp_rec["astrom_off2"]=-1.0
-        else:
-            exp_rec["astrom_off2"]=float(item[coldict["q.astromoffset_ref_highsn_2"]])
-        exp_rec["astrom_rms2"]=numpy.sqrt((sigx*sigx)+(sigy*sigy))
+            print("# WARNING: multiple exposure records found for this exposure? (num_ast_recs={:d})".format(num_ast_recs))
+        rowd = dict(zip(desc, row))
+        for fld in ['astrom_ndets','astrom_chi2','astrom_sig1','astrom_sig2','astrom_off1','astrom_off2']:
+            exp_rec[fld]=rowd[fld]
 
-    if ((exp_rec["astrom_sig1"] < 0.0001)or(exp_rec["astrom_sig2"] < 0.0001)):
-        print("# WARNING: Probable astrometric solution failure: astrom_sig1,2 = {:7.4f},{:7.4f}".format(exp_rec["astrom_sig1"],exp_rec["astrom_sig2"]))
+#
+#   In case no record was found.
+#
+    if (num_ast_recs == 0):
+        exp_rec["astrom_sig1"]=None
+        exp_rec["astrom_sig2"]=None
+        exp_rec["astrom_off1"]=None
+        exp_rec["astrom_off2"]=None
+        exp_rec["astrom_rms2"]=None
+        exp_rec["astrom_ndets"]=None
+        exp_rec["astrom_chi2"]=None
+
+#
+#   Check to see whether this looks like an astrometric failure
+#
+    astrom_good=True
+    for fld in ['astrom_ndets','astrom_chi2','astrom_sig1','astrom_sig2','astrom_off1','astrom_off2']:
+        if (exp_rec[fld] is None):
+            print("# WARNING: Probable astrometric solution failure: No/null value for {:s} in scamp_qa".format(fld))
+            astrom_good=False
+            if (fld == 'astrom_ndets'):
+                exp_rec[fld]=-1
+            else:
+                exp_rec[fld]=-1.0
+
+    sigx=exp_rec['astrom_sig1']
+    sigy=exp_rec['astrom_sig2']
+    exp_rec["astrom_rms2"]=numpy.sqrt((sigx*sigx)+(sigy*sigy))
+
+    if ((exp_rec["astrom_sig1"] < 0.001)or(exp_rec["astrom_sig2"] < 0.001)):
         astrom_good=False
+        print("# WARNING: Probable astrometric solution failure: astrom_sig1,2 = {:7.4f},{:7.4f}".format(
+            exp_rec["astrom_sig1"],exp_rec["astrom_sig2"]))
     if (exp_rec["astrom_rms2"] > 0.500):
-        print("# WARNING: Probable astrometric solution failure: astrom_rms2 = {:.3f}".format(exp_rec["astrom_rms2"]))
         astrom_good=False
+        print("# WARNING: Probable astrometric solution failure: astrom_rms2 = {:.3f}".format(
+            exp_rec["astrom_rms2"]))
+
+###############################################################################
+#   Query to get PSF_QA information
+#
+    query = """
+        select m.expnum as expnum,
+            count(m.ccdnum) as count,
+            median(q.fwhm_mean) as med_fwhm
+        from {schema:s}psf_qa q, {schema:s}miscfile m 
+        where m.pfw_attempt_id={aid:} 
+            and m.filetype='xml_psfex' 
+            and m.filename=q.filename 
+        group by m.expnum 
+        """.format(schema=db_Schema,aid=PFW_Attempt_ID)
+
+    if (args.verbose):
+        print "# Executing query to obtain PSF QA for this exposure"
+        if (args.format_query):
+            print("# query = {:s}".format(query))
+        else:
+            print("# query ={:s} ".format(" ".join([d.strip() for d in query.split('\n')])))
+
+    cur.arraysize = 1000 # get 1000 at a time when fetching
+    cur.execute(query)
+    desc = [d[0].lower() for d in cur.description]
+
+    psf_good=True
+    num_psf_recs=0
+    for row in cur:
+        num_psf_recs=num_psf_recs+1
+        if (num_psf_recs > 1):
+            print "# WARNING: multiple exposure records found for PSF QA for this exposure/pfw_attempt_id? (num_psf_recs=",num_psf_recs,")"
+        rowd = dict(zip(desc, row))
+        exp_rec['num_psfex']=rowd['count']
+        exp_rec['psfex_fwhm']=pixsize*rowd['med_fwhm']
+    
+    if ('psfex_fwhm' not in exp_rec):
+        exp_rec['psfex_fwhm']=-1.0
 
 ################################################
 #   Open generic output file (changed to STDOUT)
@@ -903,19 +1108,17 @@ if __name__ == "__main__":
 #
 #   Find nominal center and range spanned by focal plane for catalog search/comparison
 #
-    aimg_ra=numpy.array(img_ra) 
-    aimg_dec=numpy.array(img_dec)
-    if ((len(aimg_ra) < 2)or(len(aimg_dec) < 2)):
+    if ((len(img_ra) < 2)or(len(img_dec) < 2)):
         print "Warning: No CCD corners present in database for these items"
         exp_rec["ra_cen"]=exp_rec["ra"]
         exp_rec["dec_cen"]=exp_rec["dec"]
     else:
-        if ((len(aimg_ra) < (4*exp_rec["numccd"]))or(len(aimg_dec) < (4*exp_rec["numccd"]))):
+        if ((len(img_ra) < (4*exp_rec["numccd"]))or(len(img_dec) < (4*exp_rec["numccd"]))):
             print "Warning: Some CCDs may be missing RA/DEC corners)! Working with what was present..."
-        ra_min=numpy.min(aimg_ra)
-        ra_max=numpy.max(aimg_ra)
-        dec_min=numpy.min(aimg_dec)
-        dec_max=numpy.max(aimg_dec)
+        ra_min=numpy.min(img_ra)
+        ra_max=numpy.max(img_ra)
+        dec_min=numpy.min(img_dec)
+        dec_max=numpy.max(img_dec)
         if ((ra_max-ra_min)>180.0):
 #           print "IT HAPPENS ",ra_min,ra_max
             new_img_ra=[]
@@ -924,17 +1127,20 @@ if __name__ == "__main__":
                     new_img_ra.append(ra_val-360.0)
                 else:
                     new_img_ra.append(ra_val)
-            aimg_ra=numpy.array(new_img_ra)
-        ra_cen=aimg_ra.mean()
-        dec_cen=aimg_dec.mean()
+            img_ra=numpy.array(new_img_ra)
+        ra_cen=img_ra.mean()
+        dec_cen=img_dec.mean()
         if (ra_cen < 0.0):
             ra_cen=ra_cen+360.0
         exp_rec["ra_cen"]=ra_cen
         exp_rec["dec_cen"]=dec_cen
+
+#
+#   Denote whether or not this is a special case where (where exposure straddles RA=0h
+#
     near_branch=False
     if ((ra_cen < fp_rad)or((ra_cen > 180.0)and(ra_cen > (360.-fp_rad)))):
        near_branch=True
-
 
 #
 #   Report exposure information for current 
@@ -965,6 +1171,11 @@ if __name__ == "__main__":
     print("#         chi2: {:.2f} ".format(exp_rec["astrom_chi2"]))
     print("#   astrom_sig: {:7.4f},{:7.4f} ".format(exp_rec["astrom_sig1"],exp_rec["astrom_sig2"]))
     print("#   astrom_off: {:7.4f},{:7.4f} ".format(exp_rec["astrom_off1"],exp_rec["astrom_off2"]))
+    print "#"
+    print "# PSF summary:"
+    print("# median(FWHM): {:.3f} ".format(exp_rec['psfex_fwhm']))
+    print("#      num CCD: {:d} ".format(exp_rec['num_psfex']))
+    print "#"
     print "########################################"
 
 
@@ -983,40 +1194,77 @@ if __name__ == "__main__":
 #   I spent a fair amount of time making the matching algorithms robust to various types of errors and failures
 #   (e.g., center command failing, junk stars in the catalogs)  but there always seem to be a few edge cases.
 #
-    print "# Executing queries for NOMAD and APASS in vicinity of the exposure."
-    queryitems_nomad=["n.ra", "n.dec", "n.sra", "n.sde", "n.mura", "n.mudec", "n.b", "n.v", "n.r", "n.j", "n.flags"] 
-    queryitems_apass=["a.ra", "a.dec", "a.dra", "a.ddec", "a.b", "a.b_err", "a.v", "a.v_err", "a.g", "a.g_err", "a.r", "a.r_err", "a.i", "a.i_err" ] 
-    coldict_nomad={}
-    for index, item in enumerate(queryitems_nomad):
-        coldict_nomad[item]=index
-    querylist_nomad = ",".join(queryitems_nomad)
-    coldict_apass={}
-    for index, item in enumerate(queryitems_apass):
-        coldict_apass[item]=index
-    querylist_apass = ",".join(queryitems_apass)
+    print "# Preparing queries for NOMAD and APASS in vicinity of the exposure."
 #
-#   mag_constraints for NOMAD, APASS, queries
+#   Setup rules for parsing NOMAD/APASS 
 #
-    nomad_mag_constraint=''
-    apass_mag_constraint=''
-    if (exp_rec["band"] == "u"):
-        nomad_mag_constraint=' and n.b<%.1f ' % (blimit)
-        apass_mag_constraint=' and a.g<%.1f ' % (glimit)
-    if (exp_rec["band"] == "g"):
-        nomad_mag_constraint=' and n.b<%.1f ' % (blimit)
-        apass_mag_constraint=' and a.g<%.1f ' % (glimit)
-    elif ((exp_rec["band"] == "r")or(exp_rec["band"] == "VR")):
-        nomad_mag_constraint=' and n.b<%.1f and n.j<%.1f ' % (blimit,jlimit)
-        apass_mag_constraint=' and a.r<%.1f ' % (rlimit)
-    elif (exp_rec["band"] == "i"):
-        nomad_mag_constraint=' and n.j<%.1f ' % (jlimit)
-        apass_mag_constraint=' and a.i<%.1f ' % (ilimit)
-    elif ((exp_rec["band"] == "z")or(exp_rec["band"] == "Y")):
-        nomad_mag_constraint=' and n.j<%.1f ' % (jlimit)
-        apass_mag_constraint=' and a.i<%.1f ' % (ilimit)
-    print "# Applying NOMAD MAG CONSTRAINT ",nomad_mag_constraint," for work with ",exp_rec["band"],"-band data."
-    print "# Applying APASS MAG CONSTRAINT ",apass_mag_constraint," for work with ",exp_rec["band"],"-band data."
+    nomad_parse={"ra":"n.ra","dec":"n.dec"}
+    if (exp_rec["band"] in ["u","g"]):
+        nomad_parse["mag"]="n.b"
+        nomad_parse["mlimit"]=blimit
+        nomad_parse["simple"]=False
+        nomad_parse['keys']=['ra','dec','mag']
+    elif (exp_rec["band"] == "r"):
+        nomad_parse["mag"]="n.b"
+        nomad_parse["mag2"]="n.j"
+        nomad_parse["mlimit"]=blimit
+        nomad_parse["mlimit2"]=jlimit
+        nomad_parse["simple"]=False
+        nomad_parse['keys']=['ra','dec','mag','mag2']
+    elif (exp_rec["band"] in ["i","z","Y"]):
+        nomad_parse["mag"]="n.j"
+        nomad_parse["mlimit"]=jlimit
+        nomad_parse["simple"]=True
+        nomad_parse['keys']=['ra','dec','mag']
 
+    apass_parse={"ra":"a.ra","dec":"a.dec"}
+    if (exp_rec["band"] in ["u","g"]):
+        apass_parse["mag"]="a.g"
+        apass_parse["dmag"]="a.g_err"
+        apass_parse["mlimit"]=glimit
+        apass_parse['keys']=['ra','dec','mag','dmag']
+    elif (exp_rec["band"] in ["r","VR"]):
+        apass_parse["mag"]="a.r"
+        apass_parse["dmag"]="a.r_err"
+        apass_parse["mlimit"]=rlimit
+        apass_parse['keys']=['ra','dec','mag','dmag']
+    elif (exp_rec["band"] in ["i","z","Y"]):
+        apass_parse["mag"]="a.i"
+        apass_parse["dmag"]="a.i_err"
+        apass_parse["mlimit"]=ilimit
+        apass_parse['keys']=['ra','dec','mag','dmag']
+
+#
+#   Form query lists (with as to facilitate roughly homogenous catalogs
+#
+    qlist_nomad=[]
+    for key in nomad_parse['keys']:
+        qlist_nomad.append("%s as %s" % (nomad_parse[key],key))
+    querylist_nomad = ",".join(qlist_nomad)
+#    print qlist_nomad
+
+    qlist_apass=[]
+    for key in apass_parse['keys']:
+        qlist_apass.append("%s as %s" % (apass_parse[key],key))
+    querylist_apass = ",".join(qlist_apass)
+#    print qlist_apass
+
+#
+#   From magnitude constraints for queries
+#
+    if ('mag2' in nomad_parse):
+        nomad_mag_constraint=' and {:s}<{:.1f} and {:s}<{:.1f}'.format(
+            nomad_parse['mag'],nomad_parse['mlimit'],nomad_parse['mag2'],nomad_parse['mlimit2'])
+    else:
+        nomad_mag_constraint=' and {:s}<{:.1f}'.format(nomad_parse['mag'],nomad_parse['mlimit'])
+
+    apass_mag_constraint=' and {:s}<{:.1f}'.format(apass_parse['mag'],apass_parse['mlimit'])
+    if (args.verbose):
+        print("# Applying NOMAD MAG CONSTRAINT ({:s}) for work with {:s}-band data".format(nomad_mag_constraint,exp_rec["band"]))
+        print("# Applying APASS MAG CONSTRAINT ({:s}) for work with {:s}-band data".format(apass_mag_constraint,exp_rec["band"]))
+#
+#   Form queries for APASS/NOMAD objects 
+#
     if (near_branch):
 #
 #       NOTE need something better if we get closer than 2 degrees from pole
@@ -1028,113 +1276,115 @@ if __name__ == "__main__":
         ra2=ra_cen-(fp_rad/cosdec_cen)
         if (ra2 < 0.0):
             ra2=ra2+360.0
-        dec1=dec_cen+fp_rad
-        dec2=dec_cen-fp_rad
-        query_nomad = """select %s from nomad n where n.dec < %.7f and n.dec > %.7f and ( n.ra < %.7f or n.ra > %.7f ) %s order by n.ra """ % ( querylist_nomad, dec1,dec2,ra1,ra2,nomad_mag_constraint )
-        query_apass = """select %s from apass_dr7 a where a.dec < %.7f and a.dec > %.7f and ( a.ra < %.7f or a.ra > %.7f ) %s order by a.ra """ % ( querylist_apass, dec1,dec2,ra1,ra2,apass_mag_constraint)
+        dec1=dec_cen-fp_rad
+        dec2=dec_cen+fp_rad
+        query_nomad = """
+            select {qlist:s} 
+            from nomad n 
+            where n.dec between {d1:.7f} and {d2:.7f} 
+                and (n.ra < {r1:.7f} or n.ra > {r2:.7f})
+                {mcon:s} 
+            order by n.ra 
+            """.format(qlist=querylist_nomad,d1=dec1,d2=dec2,r1=ra1,r2=ra2,mcon=nomad_mag_constraint)
+
+        query_apass = """
+            select {qlist:s} 
+            from apass_dr7 a 
+            where a.dec between {d1:.7f} and {d2:.7f} 
+                and (a.ra < {r1:.7f} or a.ra > {r2:.7f})
+                {mcon:s} 
+            order by a.ra 
+            """.format(qlist=querylist_apass,d1=dec1,d2=dec2,r1=ra1,r2=ra2,mcon=apass_mag_constraint)
     else:
 #
 #       NOTE need something better if we get closer than 2 degrees from pole
 #
         cosdec_cen=numpy.cos(dec_cen*deg2rad)
-        ra1=ra_cen+(fp_rad/cosdec_cen)
-        ra2=ra_cen-(fp_rad/cosdec_cen)
-        dec1=dec_cen+fp_rad
-        dec2=dec_cen-fp_rad
-        query_nomad = """select %s from nomad n where n.dec < %.7f and n.dec > %.7f and n.ra < %.7f and n.ra > %.7f %s order by n.ra """ % ( querylist_nomad, dec1,dec2,ra1,ra2,nomad_mag_constraint )
-        query_apass = """select %s from apass_dr7 a where a.dec < %.7f and a.dec > %.7f and a.ra < %.7f and a.ra > %.7f %s order by a.ra """ % ( querylist_apass, dec1,dec2,ra1,ra2,apass_mag_constraint )
+        ra1=ra_cen-(fp_rad/cosdec_cen)
+        ra2=ra_cen+(fp_rad/cosdec_cen)
+        dec1=dec_cen-fp_rad
+        dec2=dec_cen+fp_rad
+        query_nomad = """
+            select {qlist:s} 
+            from nomad n 
+            where n.dec between {d1:.7f} and {d2:.7f} 
+                and n.ra between {r1:.7f} and {r2:.7f} 
+                {mcon:s}
+            order by n.ra
+            """.format(qlist=querylist_nomad,d1=dec1,d2=dec2,r1=ra1,r2=ra2,mcon=nomad_mag_constraint)
+        query_apass = """
+            select {qlist:s} 
+            from apass_dr7 a 
+            where a.dec between {d1:.7f} and {d2:.7f}
+                and a.ra between {r1:.7f} and {r2:.7f} 
+                {mcon:s} 
+            order by a.ra
+             """.format(qlist=querylist_apass,d1=dec1,d2=dec2,r1=ra1,r2=ra2,mcon=apass_mag_constraint)
     if args.verbose:
+        print "# Executing queries for NOMAD and APASS in vicinity of the exposure."
         print("# {:s}".format(query_nomad))
         print("# {:s}".format(query_apass))
     cur.arraysize = 1000 # get 1000 at a time when fetching
+
     t2=time.time()
     print("# TIMING (pre-NOMAD/APASS): {:.2f}".format((t2-t1)))
 #
-#       If appropriate obtain APASS data  (currently always)
+#   Acquire APASS data (currently always)
 #
-#   if (exp_rec["band"] in ["g","r","i"]):
-
-#
-#   Setup rules for parsing APASS
-#
-    apass_parse={"ra":"a.ra","dec":"a.dec"}
-    if (exp_rec["band"] in ["u","g"]):
-        apass_parse["mag"]="a.g"
-        apass_parse["dmag"]="a.g_err"
-        apass_parse["mlimit"]=glimit
-    elif (exp_rec["band"] in ["r","VR"]):
-        apass_parse["mag"]="a.r"
-        apass_parse["dmag"]="a.r_err"
-        apass_parse["mlimit"]=rlimit
-    elif (exp_rec["band"] in ["i","z","Y"]):
-        apass_parse["mag"]="a.i"
-        apass_parse["dmag"]="a.i_err"
-        apass_parse["mlimit"]=ilimit
-
     cur.execute(query_apass)
+    desc = [d[0].lower() for d in cur.description]
+
     apass_cat=[]
-    for item in cur:
-        tmp_apassdic={}
-        tmp_apassdic["ra"]=float(item[coldict_apass[apass_parse["ra"]]])
-        tmp_apassdic["dec"]=float(item[coldict_apass[apass_parse["dec"]]])
-        mag=float(item[coldict_apass[apass_parse["mag"]]])
-        if (mag > apass_parse["mlimit"]):
-            tmp_apassdic["mag"]=99.0
-            tmp_apassdic["dmag"]=99.0
-        else:
-            tmp_apassdic["mag"]=mag
-            tmp_apassdic["dmag"]=float(item[coldict_apass[apass_parse["dmag"]]])
-        if (tmp_apassdic["mag"]<98.0):
-            apass_cat.append(tmp_apassdic)
+    for row in cur:
+        rowd = dict(zip(desc, row))
+        if (rowd['mag'] > apass_parse['mlimit']):
+            rowd['mag']=99.0
+            rowd['dmag']=99.0
+        if (rowd['mag']<98.0):
+            apass_cat.append(rowd)
+
     print "# "
     print "# Number of APASS entries found (after magnitude cuts) is: ",len(apass_cat)
-#
-#   If appropriate (currently always) acquire NOMAD data
-#
     t2a=time.time()
+#
+#   Acquire NOMAD data (currently always)
+#
     cur.execute(query_nomad)
+    desc = [d[0].lower() for d in cur.description]
+
     nomad_cat=[]
-    for item in cur:
-        tmp_nomaddic={}
-        tmp_nomaddic["ra"]=float(item[coldict_nomad["n.ra"]])
-        tmp_nomaddic["dec"]=float(item[coldict_nomad["n.dec"]])
-        if (exp_rec["band"] in ["i","z","Y"]):
-            jmag=float(item[coldict_nomad["n.j"]])
-            if (jmag > jlimit):
-                tmp_nomaddic["mag"]=99.0
-            else:
-                tmp_nomaddic["mag"]=jmag
-            tmp_nomaddic["mag"]=jmag
-        elif (exp_rec["band"] in ["u","g"]):
-            bmag=float(item[coldict_nomad["n.b"]])+nomad_bmag_corr[int(tmp_nomaddic["dec"]+90.0)]
-            if (bmag > blimit):
-                tmp_nomaddic["mag"]=99.0
-            else:
-                if ((bmag > 18.37)and(bmag < 18.39)):
-                    tmp_nomaddic["mag"]=99.0
-                else:
-                    tmp_nomaddic["mag"]=bmag
-            tmp_nomaddic["mag"]=bmag
-        elif (exp_rec["band"] in ["r","VR"]):
-            jmag=float(item[coldict_nomad["n.j"]])
-            bmag=float(item[coldict_nomad["n.b"]])+nomad_bmag_corr[int(tmp_nomaddic["dec"]+90.0)]
-            if ((jmag > jlimit)or(bmag>blimit)):
-                tmp_nomaddic["mag"]=99.0
-            else:
-                if ((bmag > 18.37)and(bmag < 18.39)):
-                    tmp_nomaddic["mag"]=99.0
-                else:
-                    tmp_nomaddic["mag"]=0.333333333*((2.0*bmag)+jmag)
-            tmp_nomaddic["mag"]=0.333333333*((2.0*bmag)+jmag)
+    for row in cur:
+        rowd = dict(zip(desc, row))
+
+        if (nomad_parse["simple"]):
+            if (rowd['mag'] > nomad_parse['mlimit']):
+                rowd['mag']=99.0
         else:
-            tmp_nomaddic["mag"]=99.0
-        tmp_nomaddic["b"]=float(item[coldict_nomad["n.b"]])
-        tmp_nomaddic["v"]=float(item[coldict_nomad["n.v"]])
-        tmp_nomaddic["r"]=float(item[coldict_nomad["n.r"]])
-        tmp_nomaddic["j"]=float(item[coldict_nomad["n.j"]])
-        tmp_nomaddic["flags"]=item[coldict_nomad["n.flags"]]
-        if (tmp_nomaddic["mag"]<98.0):
-            nomad_cat.append(tmp_nomaddic)
+#
+#           When B magnitudes are involved then corrections (excissions are needed)
+#           When red magnitudes are involved then nasty extra extrapolations also occur
+#
+            if (exp_rec["band"] in ["u","g"]):
+                bmag=rowd['mag']+nomad_bmag_corr[int(rowd['dec']+90.0)]
+                if (bmag > nomad_parse['mlimit']):
+                    rowd['mag']=99.0
+                else:
+                    if ((bmag > 18.37)and(bmag < 18.39)):
+                        rowd['mag']=99.0
+                    else:
+                        rowd['mag']=bmag
+            elif (exp_rec["band"] in ["r","VR"]):
+                bmag=rowd['mag']+nomad_bmag_corr[int(rowd['dec']+90.0)]
+                jmag=rowd['mag2']
+                if ((jmag > nomad_parse['mlimit2'])or(bmag> nomad_parse['mlimit'])):
+                    rowd['mag']=99.0
+                else:
+                    if ((bmag > 18.37)and(bmag < 18.39)):
+                        rowd['mag']=99.0
+                    else:
+                        rowd['mag']=0.333333333*((2.0*bmag)+jmag)
+        if (rowd['mag']<98.0):
+            nomad_cat.append(rowd)
     print "# Number of NOMAD entries found (after magnitude cuts) is: ",len(nomad_cat)
 #
     t3=time.time()
@@ -1152,41 +1402,13 @@ if __name__ == "__main__":
     else:   
         bval=-2.5*numpy.log10(1.0)
 #    print "RAG: bval=",bval
+#
     mcorr=mtime-aval-25.0-bval
-    mag=[]
-    magerr=[]
-    emag=[]
-    emagerr=[]
-    rrad1=[]
-    rrad2=[]
-    fwld=[]
-    frad=[]
-    krad=[]
-    magerr_hist=numpy.zeros((len(mbin)),dtype=numpy.float32)
-    magnum_hist=numpy.zeros((len(mbin)),dtype=numpy.float32)
 
     nstar_found=0
-    nomad_star_set=[]
-    continue_nomad_ccorr=True
-    continue_apass_ccorr=True
-    mag_ccorr_nomad_limit=23.0
-    mag_ccorr_apass_limit=23.0
-    arate100=[]
-    nrate100=[]
-    amag100=[]
-    nmag100=[]
-    ancnt=0
-    anfnd=0
-    anfnd_sum=0
-    nnfnd=0
-    nncnt=0
-    nnfnd_sum=0
 
 ###############################################################################
 #   Columns to be retrieved from FITS tables.
-#   cols_retrieve=["ALPHAWIN_J2000","DELTAWIN_J2000","MAG_AUTO","MAGERR_AUTO","SPREAD_MODEL","FWHM_WORLD",
-#                  "A_IMAGE","B_IMAGE","THETA_IMAGE","ERRAWIN_IMAGE","ERRBWIN_IMAGE","ERRTHETAWIN_IMAGE",
-#                  "FLUX_RADIUS","KRON_RADIUS","CLASS_STAR","FLAGS"]
     cols_retrieve=["ALPHAWIN_J2000","DELTAWIN_J2000","MAG_AUTO","MAGERR_AUTO","SPREAD_MODEL","FWHM_WORLD",
                    "A_IMAGE","B_IMAGE","FLUX_RADIUS","KRON_RADIUS","CLASS_STAR","FLAGS"]
     cols_datacheck={"ALPHAWIN_J2000":{"min":-0.1,"max":360.1},
@@ -1219,9 +1441,13 @@ if __name__ == "__main__":
 #   Read each catalog and build list of dictionaries containing contents.
 #   Provisionally check data while reading against limits set in cols_datacheck.
 #
+
+    if (args.verbose):
+        print("# Obtaining catalog information from cat_finalcut catalog files")
+
     exp_cat=[]
     for iccd in range(1,63):
-        if (ccd_info[iccd]['data']):
+        if (iccd in ccd_info):
             if (os.path.isfile(ccd_info[iccd]['cat_fpath'])):
                 cat_fits = fitsio.FITS(ccd_info[iccd]['cat_fpath'],'r')
                 cat_hdu=2
@@ -1246,80 +1472,83 @@ if __name__ == "__main__":
                 cat_fits.close()
 #   Re-order sorted on magnitude (allows for speed up when comparing with APASS/NOMAD below)
     new_expcat=sorted(exp_cat,key=lambda k: k['MAG_AUTO'])
+
+    if (args.verbose):
+        print("# Total number of cat_finalcut objects: {:d}".format(len(new_expcat)))
+###################################################################
+#
+#   Form some simple sets for analysis
+#
+
+    mag=numpy.array([new_expcat[k]['MAG_AUTO']+mcorr for k, object in enumerate(new_expcat)])
+    magerr=numpy.array([new_expcat[k]['MAGERR_AUTO']    for k, object in enumerate(new_expcat)])
+
+    rstruct=[{'a_image':obj['A_IMAGE'],'b_image':obj['B_IMAGE'],'fwld':obj['FWHM_WORLD'],
+              'frad':obj['FLUX_RADIUS'],'krad':obj['KRON_RADIUS']} 
+              for obj in new_expcat if ((abs(obj['SPREAD_MODEL'])<0.0015)and(obj['MAGERR_AUTO']<0.1))]
+    rrad1=numpy.array([2.*obj['a_image'] for obj in rstruct])
+    rrad2=numpy.array([obj['a_image']+obj['b_image'] for obj in rstruct])
+    fwld=numpy.array([obj['fwld'] for obj in rstruct])
+    frad=numpy.array([obj['frad'] for obj in rstruct])
+    krad=numpy.array([obj['krad'] for obj in rstruct])
+
+###################################################################
+#
+#   Perform matching between cat_finalcut and APASS/NOMAD
+#
+    if (args.verbose):
+        print("# Entering matching phase between cat_finalcut with APASS/NOMAD")
+
+    cat_match={"apass":{"cat":apass_cat,"continue_ccor":True,"ccorr_mlimit":23.,"rate100":[],"rate100_lim":1,"mag100":[],"ncnt":0,"nfnd":0,"nfnd_sum":0},
+               "nomad":{"cat":nomad_cat,"continue_ccor":True,"ccorr_mlimit":23.,"rate100":[],"rate100_lim":3,"mag100":[],"ncnt":0,"nfnd":0,"nfnd_sum":0}}
+
+    nstar_found=0
     match_starset=[]
     for object in new_expcat:
-#       Make lists that are actually operated on to obtain histogram
-        mag.append(object["MAG_AUTO"]+mcorr)
-        magerr.append(object["MAGERR_AUTO"])
-#       Now work on objects that are constrained to be stars (by SPREAD_MODEL).
+#       Work on objects that are constrained to be stars (by SPREAD_MODEL).
         smval=abs(object["SPREAD_MODEL"])
         if ((smval < 0.0015)and(object["MAGERR_AUTO"]<0.1)):
-#           These are for finding sizes.
             nstar_found=nstar_found+1
-            aval=object["A_IMAGE"]
-            bval=object["B_IMAGE"]
-#            if ((aval>20)or(bval>20)or(object["FWHM_WORLD"]>20.)or(object["FLUX_RADIUS"]>20)or(object["KRON_RADIUS"]>20)):
-#                print "# AHHHHHH: ",object
-            rrad1.append(2.0*aval)
-            rrad2.append(aval+bval)
-            fwld.append(object["FWHM_WORLD"])
-            frad.append(object["FLUX_RADIUS"])
-            krad.append(object["KRON_RADIUS"])
-#           And this structure is used for comparison to NOMAD/APASS.
-            if (continue_nomad_ccorr)or(continue_apass_ccorr):
+#
+#           Check to see whether continued comparisons to catalogs APASS/NOMAD are warranted.
+#
+            continue_ccorr=False
+            for cat in cat_match:
+                if (cat_match[cat]["continue_ccor"]): 
+                    continue_ccorr=True
+            if (continue_ccorr):
                 tmp_starset={}
                 tmp_starset["ra"]=object["ALPHAWIN_J2000"]
                 tmp_starset["dec"]=object["DELTAWIN_J2000"]
                 tmp_starset["mag"]=object["MAG_AUTO"]+mcorr
                 tmp_starset["magerr"]=object["MAGERR_AUTO"]
+#
+#               Cross correlation vs. NOMAD/APASS
+#
                 add_tmp_starset_record=False
+                for cat in cat_match:
+                    if (cat_match[cat]["continue_ccor"]):
+                        match_rec=binsrch_crosscorr_cat(tmp_starset["ra"],tmp_starset["dec"],cat_match[cat]["cat"],1.0)
+                        cat_match[cat]["ncnt"]=cat_match[cat]["ncnt"]+1
+                        if (len(match_rec)>0):
+                            cat_match[cat]["nfnd"]=cat_match[cat]["nfnd"]+1
+                            tmp_starset[cat]=match_rec[0]
+                            tmp_starset[cat]["magcorr"]=tmp_starset[cat]["mag"]+cat_mag_corr[cat][exp_rec["band"]]
+                            tmp_starset[cat]["magdiff"]=tmp_starset["mag"]-tmp_starset[cat]["mag"]-cat_mag_corr[cat][exp_rec["band"]]
+                            add_tmp_starset_record=True
 #
-#               Cross correlation vs. NOMAD
+#                       Look for the point of diminishing returns (very few new matches found)
 #
-                if (continue_nomad_ccorr):
-                    match_rec=binsrch_crosscorr_cat(tmp_starset["ra"],tmp_starset["dec"],nomad_cat,1.0)
-                    nncnt=nncnt+1
-                    if (len(match_rec)>0):
-                        nnfnd=nnfnd+1
-                        tmp_starset["nomad"]=match_rec[0]
-                        tmp_starset["nomad"]["magcorr"]=tmp_starset["nomad"]["mag"]+nomad_mag_corr[exp_rec["band"]]
-                        tmp_starset["nomad"]["magdiff"]=tmp_starset["mag"]-tmp_starset["nomad"]["mag"]-nomad_mag_corr[exp_rec["band"]]
-                        add_tmp_starset_record=True
-
-#
-#                   Look for the point of diminishing returns (very few new matches found)
-#
-                    if (nncnt%100 == 0):
-                        nrate100.append(nnfnd)  
-                        nnfnd_sum=nnfnd_sum+nnfnd
-                        nnfnd=0
-                        if ((len(nrate100)>10)and(nnfnd_sum>500)):
-                            if ((nrate100[-3]<n100_lim)and(nrate100[-2]<n100_lim)and(nrate100[-1]<n100_lim)):
-                                continue_nomad_ccorr=False
-#
-#               Cross correlation vs. APASS
-#
-#               if (exp_rec["band"] in ["g","r","i"]):
-                if (continue_apass_ccorr):
-                    match_rec=binsrch_crosscorr_cat(tmp_starset["ra"],tmp_starset["dec"],apass_cat,1.0)
-                    ancnt=ancnt+1
-                    if (len(match_rec)>0):
-                        anfnd=anfnd+1
-                        tmp_starset["apass"]=match_rec[0]
-                        tmp_starset["apass"]["magcorr"]=tmp_starset["apass"]["mag"]+apass_mag_corr[exp_rec["band"]]
-                        tmp_starset["apass"]["magdiff"]=tmp_starset["mag"]-tmp_starset["apass"]["mag"]-apass_mag_corr[exp_rec["band"]]
-                        add_tmp_starset_record=True
-#
-#                   Look for the point of diminishing returns (very few new matches found)
-#
-                    if (ancnt%100 == 0):
-                        arate100.append(anfnd)
-                        anfnd_sum=anfnd_sum+anfnd
-                        anfnd=0
-                        if ((len(arate100)>10)and(anfnd_sum>500)):
-                            if ((arate100[-3]<a100_lim)and(arate100[-2]<a100_lim)and(arate100[-1]<a100_lim)):
-                                continue_apass_ccorr=False
-                # If add_tmp_starset_record is True then add the record to the matched star set.
+                        if (cat_match[cat]["ncnt"]%100 == 0):
+                            cat_match[cat]["rate100"].append(cat_match[cat]["nfnd"])  
+                            cat_match[cat]["nfnd_sum"]=cat_match[cat]["nfnd_sum"]+cat_match[cat]["nfnd"]
+                            cat_match[cat]["nfnd"]=0
+                            if ((len(cat_match[cat]["rate100"])>10)and(cat_match[cat]["nfnd_sum"]>500)):
+                                if ((cat_match[cat]["rate100"][-3]<cat_match[cat]["rate100_lim"])and
+                                    (cat_match[cat]["rate100"][-2]<cat_match[cat]["rate100_lim"])and
+                                    (cat_match[cat]["rate100"][-1]<cat_match[cat]["rate100_lim"])):
+                                    cat_match[cat]["continue_corr"]=False
+#               If add_tmp_starset_record is True then add the record to the matched star set.
                 if (add_tmp_starset_record):
                     match_starset.append(tmp_starset)
 
@@ -1327,6 +1556,7 @@ if __name__ == "__main__":
     exp_rec["numobj"]=len(mag)
     print "# "
     print("# Number of objects from exposure catalogs: {:d}".format(exp_rec["numobj"]))
+    print("# Number of stellar objects from exposure catalogs: {:d}".format(nstar_found))
 
     sat_check={}
     num_matches={}
@@ -1341,7 +1571,10 @@ if __name__ == "__main__":
     for cat in ['apass','nomad']:
         print("# Number of {:s} matches: {:d}".format(cat,num_matches[cat]))
     print("# TIMING (APASS/NOMAD crosscorr): {:.2f}".format((t4-t3)))
+
+###################################################################
 #
+#   Now that matching is complete...
 #   Check for significant #'s of saturated stars.
 #
     sat_limit=5.0
@@ -1404,300 +1637,125 @@ if __name__ == "__main__":
     for cat in ['apass','nomad']:
         print("# Number of {:s} matches remaining: {:d}".format(cat,num_matches[cat]))
 
-#
+########################################################################################
 #   Proceed to assessing the atmospheric opacity.
+#
+    cat_use={"apass":['g','r'],
+             "nomad":['u','g','r','i','z','Y','VR']}
 #
     transparency_calc=False
 #   if (exp_rec["band"] in ["g","r","i"]):
-    if (num_matches['apass']<100):
-#       For a limited number of stars do not make comparison... output will be sentinel value.
-        exp_rec["apass_magdiff"]=99.0
-        exp_rec["apass_kmagdiff"]=99.0
-        exp_rec["apass_num"]=num_matches['apass']
-        if (args.qaplot):
-#           If QA plots have been requested then output an empty QA plot that gives 
-#           information about the failure.
-            plt.figure()
-            plt.subplot(2,1,1)
-            if (len(sat_check['apass'])>0):
-                mag_des,mag_apass,mag_diff=zip(*sat_check['apass'])
+    for cat in ['apass','nomad']:
+        if (num_matches[cat]<100):
+#           For a limited number of stars do not make comparison... output will be sentinel value.
+            exp_rec[cat+"_magdiff"]=99.0
+            exp_rec[cat+"_kmagdiff"]=99.0
+            exp_rec[cat+"_num"]=num_matches[cat]
+        else:
+#
+#           Now the workhorse case (for APASS)
+#           Workhorse case... find offset
+#
+            if (len(sat_check[cat])>0):
+                mag_des,mag_cat,mag_diff=zip(*sat_check[cat])
             else:
                 mag_des=[]
-                mag_apass=[]
+                mag_cat=[]
                 mag_diff=[]
-            plt.scatter(mag_des,mag_apass,marker='.',color='blue')
-            plt.plot([10,18],[10,18],color='red',linewidth=1)
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            if (exp_rec["band"] in ["u","g"]):
-                plt.ylabel('APASS g\'')
-            elif (exp_rec["band"] in ["r","VR"]):
-                plt.ylabel('APASS r\'')
-            elif (exp_rec["band"] in ["i","z","Y"]):
-                plt.ylabel('APASS i\'')
-            else:
-                plt.ylabel('APASS [unknown]')
-            plt.text(10.5,17,'Number of APASS matches: %d' % (num_matches['apass']))
-            if (not(astrom_good)):
-                plt.text(10.5,16,'Probable failure to find an astrometric solution')
-            plt.subplot(2,1,2)
-            plt.plot([10,18],[0,0],color='red',linewidth=3)
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            if (exp_rec["band"] in ["u","g"]):
-                plt.ylabel('DES - APASS g\'')
-            elif (exp_rec["band"] in ["r","VR"]):
-                plt.ylabel('DES - APASS r\'')
-            elif (exp_rec["band"] in ["i","z","Y"]):
-                plt.ylabel('DES - APASS i\'')
-            else:
-                plt.ylabel('DES - APASS [unknown]')
-            plt.savefig("%s_apass.png" % (args.froot))
-    else:
-#       Workhorse case... find offset
-        if (len(sat_check['apass'])>0):
-            mag_des,mag_apass,mag_diff=zip(*sat_check['apass'])
-        else:
-            mag_des=[]
-            mag_apass=[]
-            mag_diff=[]
-        amag_apass=numpy.array(mag_apass)
-        amag_diff=numpy.array(mag_diff)
-
-#       numpy.where(numpy.logical_and((numpy.logical_and((r2_acolor>=cntcut),(i2_acolor>=cntcut))),(numpy.logical_and((z2_acolor>=cntcut),(g1_acolor>75.)))
-        cut_val=numpy.where(amag_apass > sat_limit)
-        med_magdiff=numpy.median(amag_diff[cut_val])
-        std_magdiff=numpy.std(amag_diff[cut_val])
-        print("# ")
-        print("# (PRELIM APASS) Median magnitude offset: {:8.3f} {:8.3f} ".format(med_magdiff,std_magdiff))
+            amag_cat=numpy.array(mag_cat)
+            amag_diff=numpy.array(mag_diff)
+#           numpy.where(numpy.logical_and((numpy.logical_and((r2_acolor>=cntcut),(i2_acolor>=cntcut))),(numpy.logical_and((z2_acolor>=cntcut),(g1_acolor>75.)))
+            cut_val=numpy.where(amag_cat > sat_limit)
+            med_magdiff=numpy.median(amag_diff[cut_val])
+            std_magdiff=numpy.std(amag_diff[cut_val])
+            print("# ")
+            print("# (PRELIM {:s}) Median magnitude offset: {:8.3f} {:8.3f} ".format(cat,med_magdiff,std_magdiff))
 #
-#       Perform a rejection iteration.
+#           Perform a rejection iteration.
 #
-        mag_fit=[]
-        mag_reject=[]
-        for record in sat_check['apass']:
-            junkval=record[0]-record[1]
-            reject_val=False
-            if (abs((junkval-med_magdiff)/std_magdiff)>3.0): reject_val=True
-            if (record[1] < sat_limit): reject_val=True
-            if (reject_val):
-                mag_reject.append(record)
-            else:
-                mag_fit.append(record)
-        if (len(mag_fit)>0):
-            mag_des,mag_apass,mag_diff=zip(*mag_fit)
-        else:
-            mag_des=[]
-            mag_apass=[]
-            mag_diff=[]
-        if (len(mag_reject)>0):
-            mag_des_reject,mag_apass_reject,mag_diff_reject=zip(*mag_reject)
-        else:
-            mag_des_reject=[]
-            mag_apass_reject=[]
-            mag_diff_reject=[]
-#
-#       Go on and calculate magnitude(s) of opacity
-#
-        amag_diff=numpy.array(mag_diff)
-        mindes=min(mag_des)
-        maxdes=max(mag_des)
-        med_magdiff=numpy.median(amag_diff)
-        std_magdiff=numpy.std(amag_diff)
-        exp_rec["apass_magdiff"]=med_magdiff
-        exp_rec["apass_kmagdiff"]=med_magdiff-apass_mag_corr[exp_rec["band"]]+apass_kmag_corr[exp_rec["band"]]-(kterm[band2i[exp_rec["band"]]]*exp_rec["airmass"])
-        exp_rec["apass_num"]=num_matches['apass']
-
-        if (exp_rec["band"] in ["g","r"]):
-            transparency_calc=True
-            exp_rec["magdiff"]=med_magdiff
-            exp_rec["cloud_cat"]="APASS"
-            print("# (USING APASS) Median magnitude offset: {:8.3f} {:8.3f} ".format(med_magdiff,std_magdiff))
-        else:
-            print("# (NOUSE APASS) Median magnitude offset: {:8.3f} {:8.3f} ".format(med_magdiff,std_magdiff))
-#
-#       Generate APASS QA plot.
-#
-        if (args.qaplot):
-            plt.figure()
-            plt.subplot(2,1,1)
-            plt.scatter(mag_des,mag_apass,marker='.',color='blue')
-            if (len(mag_des_reject) > 0):
-                plt.scatter(mag_des_reject,mag_apass_reject,marker='.',color='magenta')
-            plt.plot([mindes,maxdes],[mindes,maxdes],color='red',linewidth=1)
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            if (exp_rec["band"] in ["u","g"]):
-                plt.ylabel('APASS g\'')
-            elif (exp_rec["band"] in ["r","VR"]):
-                plt.ylabel('APASS r\'')
-            elif (exp_rec["band"] in ["i","z","Y"]):
-                plt.ylabel('APASS i\'')
-            else:
-                plt.ylabel('APASS [unknown]')
-            plt.subplot(2,1,2)
-            plt.scatter(mag_des,mag_diff,marker='.',color='blue')
-            if (len(mag_des_reject) > 0):
-                plt.scatter(mag_des_reject,mag_diff_reject,marker='.',color='magenta')
-            plt.plot([mindes,maxdes],[med_magdiff,med_magdiff],color='red',linewidth=3)
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            if (exp_rec["band"] in ["u","g"]):
-                plt.ylabel('DES - APASS g\'')
-            elif (exp_rec["band"] in ["r","VR"]):
-                plt.ylabel('DES - APASS r\'')
-            elif (exp_rec["band"] in ["i","z","Y"]):
-                plt.ylabel('DES - APASS i\'')
-            else:
-                plt.ylabel('DES - APASS [unknown]')
-            plt.savefig("%s_apass.png" % (args.froot))
-#           plt.show()
-#
-#   Repeat for NOMAD
-#
-    if (num_matches['nomad']<100):
-#       For a limited number of stars do not make comparison... output will be sentinel value.
-        exp_rec["nomad_magdiff"]=99.0
-        exp_rec["nomad_kmagdiff"]=99.0
-        exp_rec["nomad_num"]=num_matches['nomad']
-        if (args.qaplot):
-#           If QA plots have been requested then output an empty QA plot that gives 
-#           information about the failure.
-            plt.figure()
-            plt.subplot(2,1,1)
-            if (len(sat_check['nomad'])>0):
-                mag_des,mag_nomad,mag_diff=zip(*sat_check['nomad'])
+            mag_fit=[]
+            mag_reject=[]
+            for record in sat_check[cat]:
+                junkval=record[0]-record[1]
+                reject_val=False
+                if (abs((junkval-med_magdiff)/std_magdiff)>3.0): reject_val=True
+                if (record[1] < sat_limit): reject_val=True
+                if (reject_val):
+                    mag_reject.append(record)
+                else:
+                    mag_fit.append(record)
+            if (len(mag_fit)>0):
+                mag_des,mag_cat,mag_diff=zip(*mag_fit)
             else:
                 mag_des=[]
-                mag_nomad=[]
+                mag_cat=[]
                 mag_diff=[]
-            plt.scatter(mag_des,mag_nomad,marker='.',color='blue')
-            plt.plot([10,18],[10,18],color='red',linewidth=1)
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            if (exp_rec["band"] in ["i","z","Y"]):
-                plt.ylabel('NOMAD J')
-            elif (exp_rec["band"] in ["u","g"]):
-                plt.ylabel('NOMAD B')
-            elif (exp_rec["band"] in ["r","VR"]):
-                plt.ylabel('NOMAD [(2*B+J)/3]')
+            if (len(mag_reject)>0):
+                mag_des_reject,mag_cat_reject,mag_diff_reject=zip(*mag_reject)
             else:
-                plt.ylabel('NOMAD [unknown]')
-            plt.text(10.5,17,'Number of NOMAD matches: %d' % (num_matches['nomad']))
-            if (not(astrom_good)):
-                plt.text(10.5,16,'Probable failure to find an astrometric solution')
-            plt.subplot(2,1,2)
-            plt.plot([10,18],[0,0],color='red',linewidth=3)
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            if (exp_rec["band"] in ["i","z","Y"]):
-                plt.ylabel('DES - NOMAD J')
-            elif (exp_rec["band"] in ["u","g"]):
-                plt.ylabel('DES - NOMAD B')
-            elif (exp_rec["band"] in ["r","VR"]):
-                plt.ylabel('DES - NOMAD [(2*B+J)/3]')
+                mag_des_reject=[]
+                mag_cat_reject=[]
+                mag_diff_reject=[]
+#
+#           Go on and calculate magnitude(s) of opacity
+#
+            amag_diff=numpy.array(mag_diff)
+            mindes=min(mag_des)
+            maxdes=max(mag_des)
+            med_magdiff=numpy.median(amag_diff)
+            std_magdiff=numpy.std(amag_diff)
+            exp_rec[cat+"_magdiff"]=med_magdiff
+            exp_rec[cat+"_kmagdiff"]=med_magdiff-cat_mag_corr[cat][exp_rec['band']]+cat_kmag_corr[cat][exp_rec['band']]-(kterm[band2i[exp_rec['band']]]*exp_rec["airmass"])
+            exp_rec[cat+"_num"]=num_matches[cat]
+#
+#           LOGIC HERE DECIDES RULES FOR WHICH MEASURE FROM WHICH CATALOG TO USE
+#              -- order they go through is important (APASS, then NOMAD cleans up)
+#              -- once a choice is made it simple reports the value (with NOUSE)
+#
+            if(not(transparency_calc)):
+                if (exp_rec["band"] in cat_use[cat]):
+                    transparency_calc=True
+                    exp_rec["magdiff"]=med_magdiff
+                    exp_rec["cloud_cat"]=cat.upper()
+                    print("# (USING {:s}) Median magnitude offset: {:8.3f} {:8.3f} ".format(cat.upper(),med_magdiff,std_magdiff))
+                else:
+                    print("# (NOUSE {:s}) Median magnitude offset: {:8.3f} {:8.3f} ".format(cat.upper(),med_magdiff,std_magdiff))
             else:
-                plt.ylabel('DES - NOMAD [unknown]')
-            plt.savefig("%s_nomad.png" % (args.froot))
-    else:
-#       Workhorse case... find offset
-        if (len(sat_check['nomad'])>0):
-            mag_des,mag_nomad,mag_diff=zip(*sat_check['nomad'])
-        else:
-            mag_des=[]
-            mag_nomad=[]
-            mag_diff=[]
-        amag_nomad=numpy.array(mag_nomad)
-        amag_diff=numpy.array(mag_diff)
-
-#       numpy.where(numpy.logical_and((numpy.logical_and((r2_acolor>=cntcut),(i2_acolor>=cntcut))),(numpy.logical_and((z2_acolor>=cntcut),(g1_acolor>75.)))
-        cut_val=numpy.where(amag_nomad > sat_limit)
-        med_magdiff=numpy.median(amag_diff[cut_val])
-        std_magdiff=numpy.std(amag_diff[cut_val])
-        print("# (PRELIM NOMAD) Median magnitude offset: {:8.3f} {:8.3f} ".format(med_magdiff,std_magdiff))
+                print("# (NOUSE {:s}) Median magnitude offset: {:8.3f} {:8.3f} ".format(cat.upper(),med_magdiff,std_magdiff))
 #
-#       Perform a rejection iteration.
-#
-        mag_fit=[]
-        mag_reject=[]
-        for record in sat_check['nomad']:
-            junkval=record[0]-record[1]
-            reject_val=False
-            if (abs((junkval-med_magdiff)/std_magdiff)>3.0): reject_val=True
-            if (record[1] < sat_limit): reject_val=True
-            if (reject_val):
-                mag_reject.append(record)
-            else:
-                mag_fit.append(record)
-        if (len(mag_fit)>0):
-            mag_des,mag_nomad,mag_diff=zip(*mag_fit)
-        else:
-            mag_des=[]
-            mag_nomad=[]
-            mag_diff=[]
-        if (len(mag_reject)>0):
-            mag_des_reject,mag_nomad_reject,mag_diff_reject=zip(*mag_reject)
-        else:
-            mag_des_reject=[]
-            mag_nomad_reject=[]
-            mag_diff_reject=[]
-
-#
-#       Go on and calculate magnitude(s) of opacity
-#
-        amag_diff=numpy.array(mag_diff)
-        mindes=min(mag_des)
-        maxdes=max(mag_des)
-        med_magdiff=numpy.median(amag_diff)
-        std_magdiff=numpy.std(amag_diff)
-        exp_rec["nomad_magdiff"]=med_magdiff
-        exp_rec["nomad_kmagdiff"]=med_magdiff-nomad_mag_corr[exp_rec["band"]]+nomad_kmag_corr[exp_rec["band"]]-(kterm[band2i[exp_rec["band"]]]*exp_rec["airmass"])
-        exp_rec["nomad_num"]=num_matches['nomad']
-
-#
-#       If APASS has not provided a result then use NOMAD result otherwise report result 
-#
-        if(not(transparency_calc)):
-            transparency_calc=True
-            exp_rec["magdiff"]=med_magdiff
-            exp_rec["cloud_cat"]="NOMAD"
-            print("# (USING NOMAD) Median magnitude offset: {:8.3f} {:8.3f} ".format(med_magdiff,std_magdiff))
-        else:
-            print("# (NOUSE NOMAD) Median magnitude offset: {:8.3f} {:8.3f} ".format(med_magdiff,std_magdiff))
-#
-#       Generate NOMAD QA plot.
+#       Finished analysis
 #
         if (args.qaplot):
-            plt.figure()
-            plt.subplot(2,1,1)
-            plt.scatter(mag_des,mag_nomad,marker='.',color='blue')
-            if (len(mag_des_reject) > 0):
-                plt.scatter(mag_des_reject,mag_nomad_reject,marker='.',color='magenta')
-            plt.plot([mindes,maxdes],[mindes,maxdes],color='red',linewidth=1)
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            if (exp_rec["band"] in ["i","z","Y"]):
-                plt.ylabel('NOMAD J')
-            elif (exp_rec["band"] in ["u","g"]):
-                plt.ylabel('NOMAD B')
-            elif (exp_rec["band"] in ["r","VR"]):
-                plt.ylabel('NOMAD [(2*B+J)/3]')
-            else:
-                plt.ylabel('NOMAD [unknown]')
-            plt.subplot(2,1,2)
-            plt.scatter(mag_des,mag_diff,marker='.',color='blue')
-            if (len(mag_des_reject) > 0):
-                plt.scatter(mag_des_reject,mag_diff_reject,marker='.',color='magenta')
-            plt.plot([mindes,maxdes],[med_magdiff,med_magdiff],color='red',linewidth=3)
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            if (exp_rec["band"] in ["i","z","Y"]):
-                plt.ylabel('DES - NOMAD J')
-            elif (exp_rec["band"] in ["u","g"]):
-                plt.ylabel('DES - NOMAD B')
-            elif (exp_rec["band"] in ["r","VR"]):
-                plt.ylabel('DES - NOMAD [(2*B+J)/3]')
-            else:
-                plt.ylabel('DES - NOMAD [unknown]')
-            plt.savefig("%s_nomad.png" % (args.froot))
-#           plt.show()
-
 #
-#   Now the case where the transparency calcultion has failed... give an
+#           If --qaplot option is active then generate QA plots for atmospheric exinctiont.
 #
+            PlotFileName='{:s}_{:s}.png'.format(args.froot,cat)
+            PlotData={}
+            PlotData['nmatch']=num_matches[cat]
+            if (num_matches[cat]<100):
+#               If QA plots have been requested then output an empty QA plot that gives 
+#               information about the failure.
+                if (len(sat_check[cat])>0):
+                    PlotData['mag_des'],PlotData['mag_cat'],PlotData['mag_diff']=zip(*sat_check[cat])
+                else:
+                    PlotData['mag_des']=[]
+                    PlotData['mag_cat']=[]
+                    PlotData['mag_diff']=[]
+            else:
+                PlotData['mag_des']=mag_des
+                PlotData['mag_cat']=mag_cat
+                PlotData['mag_diff']=mag_diff
+                PlotData['mag_des_reject']=mag_des_reject
+                PlotData['mag_cat_reject']=mag_cat_reject
+                PlotData['mag_diff_reject']=mag_diff_reject
+                PlotData['mindes']=mindes
+                PlotData['maxdes']=maxdes
+                PlotData['med_magdiff']=med_magdiff
 
+            QAplt_cloud(PlotFileName,PlotData,cat,exp_rec['band'],astrom_good,args.verbose)
+#
+#   Now the case where all attempts to make a transparency calcultion have failed... give a sentinel value
+#
     if (not(transparency_calc)):
         exp_rec["magdiff"]=99.
         exp_rec["cloud_cat"]="Failed"
@@ -1705,20 +1763,15 @@ if __name__ == "__main__":
     print("# TIMING (Transparency calculation): {:.2f}".format((t5-t4)))
     print(" ")
 ##############################################################################
-#   FWHM 
+#   Load all the various FWHM measuments into the dictionary
 #
     if (nstar_found > 2):                   
-        arrad1=numpy.array(rrad1) 
-        arrad2=numpy.array(rrad2) 
-        afwld=numpy.array(fwld) 
-        akrad=numpy.array(krad) 
-        afrad=numpy.array(frad) 
         exp_rec["nstar_found"]=nstar_found
-        exp_rec["fwhm_rrad1"]=pixsize*arrad1.mean()
-        exp_rec["fwhm_rrad2"]=pixsize*arrad2.mean()
-        exp_rec["fwhm_world"]=3600.*afwld.mean()
-        exp_rec["fwhm_krad"]=2.0*pixsize*akrad.mean()
-        exp_rec["fwhm_frad"]=2.0*pixsize*afrad.mean()
+        exp_rec["fwhm_rrad1"]=pixsize*rrad1.mean()
+        exp_rec["fwhm_rrad2"]=pixsize*rrad2.mean()
+        exp_rec["fwhm_world"]=3600.*fwld.mean()
+        exp_rec["fwhm_krad"]=2.0*pixsize*krad.mean()
+        exp_rec["fwhm_frad"]=2.0*pixsize*frad.mean()
     else:
         exp_rec["nstar_found"]=nstar_found
         exp_rec["fwhm_rrad1"]=-1.
@@ -1728,30 +1781,28 @@ if __name__ == "__main__":
         exp_rec["fwhm_frad"]=-1.
     t5a=time.time()
 
+#########################################################################################
+#   In the following section calculate some QA on the magnitude depth (needs work to make it 
+#   robust (or remotely useful).
+#
+    magerr_hist=numpy.zeros((len(mbin)),dtype=numpy.float32)
+    magnum_hist=numpy.zeros((len(mbin)),dtype=numpy.float32)
+
     if (len(mag)<10):
 #
-#       If insufficient data is present to even begin to try then simply report faulure 
-#       move along.  
+#       If insufficient data is present to even begin to try then simply report failure,
+#       put out a super-unintersting plot, and move along.  
 #
+        print("#")
+        print("# Insufficient data to estimate magnitude depth")
         mag_thresh=99.9
         if (args.qaplot):   
 #           If QA plots were requested then write a dummy plot that indicates failure
-            plt.figure()
-            plt.subplot(2,1,1)
-#           plt.scatter(xplt,yplt1,marker='.',color='blue')
-            plt.axis([8,26,0.5,10000])
-#            plt.semilogy(xplt,yplt1,marker='.',ls='None',color='blue')
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            plt.ylabel('# objects')
-            plt.text(9.,9000.,'Number of objects insufficient for histogram: %d' % (len(mag)))
-            if (not(astrom_good)):
-                plt.text(9.,7800,'Probable failure to find an astrometric solution')
-            plt.subplot(2,1,2)
-#            plt.scatter(xplt,yplt2,marker='.',color='blue')
-            plt.axis([8,26,-0.01,0.5])
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            plt.ylabel('median(magerr_auto)')
-            plt.savefig("%s_magplot.png" % (args.froot))
+            PlotFileName='{:s}_magplot.png'.format(args.froot)
+            PlotData={}
+            PlotData['nobj']=len(mag)
+            QAplt_maghist(PlotFileName,PlotData,exp_rec['band'],astrom_good,args.verbose)
+
     else:
 #
 #       Sort the resuling mag and magerr based on mag... (sort indexes then apply)
@@ -1844,29 +1895,14 @@ if __name__ == "__main__":
 #           fmag.close()
     
         if (args.qaplot):   
-            xplt=[]
-            yplt1=[]
-            yplt2=[]
-            for ibin, m1 in enumerate(mbin):
-#               print("# {:8.3f} {:8.0f} {:8.3f} ".format(mbin[ibin],magnum_hist[ibin],magerr_hist[ibin]))
-                xplt.append(mbin[ibin]-0.5)
-                yplt1.append(magnum_hist[ibin])
-                yplt2.append(magerr_hist[ibin])
-            plt.figure()
-            plt.subplot(2,1,1)
-#           plt.scatter(xplt,yplt1,marker='.',color='blue')
-            plt.axis([8,26,0.5,10000])
-            plt.semilogy(xplt,yplt1,marker='.',ls='None',color='blue')
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            plt.ylabel('# objects')
-    
-            plt.subplot(2,1,2)
-            plt.scatter(xplt,yplt2,marker='.',color='blue')
-            plt.axis([8,26,-0.01,0.5])
-            plt.xlabel('DES MAG_AUTO(%s)'%exp_rec["band"])
-            plt.ylabel('median(magerr_auto)')
-            plt.savefig("%s_magplot.png" % (args.froot))
-#           plt.show()
+            PlotFileName='{:s}_magplot.png'.format(args.froot)
+            PlotData={}
+            PlotData['nobj']=len(mag)
+            PlotData['bins']=mbin-(0.5*magbin_step)
+            PlotData['mag_hist']=magnum_hist
+            PlotData['magerr_hist']=magerr_hist
+            QAplt_maghist(PlotFileName,PlotData,exp_rec['band'],astrom_good,args.verbose)
+
     exp_rec["mag_thresh"]=mag_thresh
     t6=time.time()
     print("# TIMING (Object number counts): {:.2f}".format((t6-t5a)))
@@ -1876,9 +1912,19 @@ if __name__ == "__main__":
 #
 #   Calculate F_eff
 #
-    if (exp_rec["fwhm_world"]>0.0):
-        exp_rec["teff_f"]=(seeing_fid[exp_rec["band"]]*seeing_fid[exp_rec["band"]]/(exp_rec["fwhm_world"]*exp_rec["fwhm_world"]))
+#   Note code is now updated to use the psfex_fwhm (rather than fwhm_world)
+#
+    use_fwhm=-1.0
+    if (exp_rec['psfex_fwhm']>0.0):
+        use_fwhm=exp_rec['psfex_fwhm']
     else:
+        if (exp_rec['fwhm_world']>0.0):
+            print("# WARNING:  No FWHM from PSFex... attempting to use FWHM_WORLD")
+            use_fwhm=exp_rec['fwhm_world']
+    if (use_fwhm > 0.0):
+        exp_rec["teff_f"]=(seeing_fid[exp_rec["band"]]*seeing_fid[exp_rec["band"]]/(use_fwhm*use_fwhm))
+    else:
+        print("# WARNING:  No FWHM measure available. F_EFF set to -1.0")
         exp_rec["teff_f"]=-1.0
 #
 #   Calculate B_eff
@@ -1886,6 +1932,7 @@ if __name__ == "__main__":
     if (exp_rec["skyb_avg"]>0.0):
         exp_rec["teff_b"]=sbrite_good[exp_rec["band"]]/exp_rec["skyb_avg"]
     else:
+        print("# WARNING:  No SKY BRIGHTNESS measure available. B_EFF set to -1.0")
         exp_rec["teff_b"]=-1.0
 #
 #   Calculate C_eff
@@ -1896,6 +1943,7 @@ if __name__ == "__main__":
         else:
             exp_rec["teff_c"]=math.pow(10.0,(-2.0*(exp_rec["magdiff"]-0.2)/2.5))
     else:
+        print("# WARNING:  No CLOUD measure available. C_EFF set to -1.0")
         exp_rec["teff_c"]=-1.0
 #
 #   Calculate T_eff
@@ -1911,17 +1959,45 @@ if __name__ == "__main__":
         exp_rec["teff"]=-1.
     else:
         exp_rec["teff"]=value_teff
-
     t7=time.time()
-    print("# TIMING for exposure {:7d}: (all={:6.2f}, general_query={:6.2f}, APASS={:6.2f}, NOMAD={:6.2f}, crosscorr={:6.2f}, cat_compare={:6.2f} ,mag_analyze={:6.2f}) ".format(exp_rec["expnum"],(t7-t0),(t1-t0),(t3-t2a),(t2a-t2),(t4-t3),(t5-t4),(t6-t5)))
-    print("# FWHM measures for exposure {:7d}: (NSTAR_FOUND,FWHM_IMG,WORLD,2*A,A+B,Kron,R50) {:6d} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} ".format(exp_rec["expnum"],exp_rec["nstar_found"],exp_rec["fwhm_img"],exp_rec["fwhm_world"],exp_rec["fwhm_rrad1"],exp_rec["fwhm_rrad2"],exp_rec["fwhm_krad"],exp_rec["fwhm_frad"]))
+
+#############################################################################
+#   Summary of all timing information
+#   Summary of all FWHM measurements
+
+    print("# ")
+    print("# ")
+    print("#         TIMING Summary  ")
+    print("#------------------------------")
+    print("#  general query(s): {:7.2f} ".format((t1-t0)))
+    print("#             APASS: {:7.2f} ".format((t3-t2a)))
+    print("#             NOMAD: {:7.2f} ".format((t2a-t2)))
+    print("# Cross-correlation: {:7.2f} ".format((t4-t3)))
+    print("#    Cat comparison: {:7.2f} ".format((t5-t4)))
+    print("#      Mag Analysis: {:7.2f} ".format((t6-t5)))
+    print("# ")
+    print("#               all: {:.2f} ".format((t7-t0)))
+    print("# ")
+
+    print("# ")
+    print("# ")
+    print("#              FWHM Summary   ")
+    print("#------------------------------------")
+    print("#          NSTAR_FOUND = {:d} ".format(exp_rec['nstar_found']))
+    print("#        FWHM_IMG(OLD) = {:7.3f} ".format(exp_rec['fwhm_img']))
+    print("#           FWHM_WORLD = {:7.3f} ".format(exp_rec['fwhm_world']))
+    print("#          2 * A_IMAGE = {:7.3f} ".format(exp_rec['fwhm_rrad1']))
+    print("#    A_IMAGE + B_IMAGE = {:7.3f} ".format(exp_rec['fwhm_rrad2']))
+    print("#          Kron Radius = {:7.3f} ".format(exp_rec['fwhm_krad']))
+    print("#               F(RAD) = {:7.3f} ".format(exp_rec['fwhm_frad']))
+    print("# ")
+    print("#     PSFex(FWHM_MEAN) = {:7.3f} ".format(exp_rec['psfex_fwhm']))
     print("# ")
 
 ###############################################################################
 #   Everything is now ready to make an assessment and to output it to the 
 #   proper locations.
 #
-
     new_decide="none"
     if ((exp_rec["teff"]<0.)or(exp_rec["teff_c"]<0.0)):
         new_decide="unkn"
@@ -1952,101 +2028,112 @@ if __name__ == "__main__":
 #
 #   Write DB_file if command line option present 
 #
-    if((args.updateDB)or(args.DB_file)):
-        prog_name='Unknown'
-        if (exp_rec["sn_field"]):
-            prog_name='supernova'
-        if (exp_rec["survey_field"]):
-            prog_name='survey'
+#    if((args.updateDB)or(args.DB_file)):
+    prog_name='Unknown'
+    if (exp_rec["sn_field"]):
+        prog_name='supernova'
+    if (exp_rec["survey_field"]):
+        prog_name='survey'
 #
 #       First the columns that should always be present
 #
-#   EXPOSURENAME                        VARCHAR2(100)
-#   EXPNUM                    NOT NULL NUMBER(10)
-#   REQNUM                    NOT NULL NUMBER(38)
-#   UNITNAME                  NOT NULL VARCHAR2(20)
-#   ATTNUM                    NOT NULL NUMBER(5)
-#   CAMSYM                    NOT NULL VARCHAR2(1)
-#   PROCESSED                      VARCHAR2(10)
-#   ACCEPTED                       VARCHAR2(10)
-#   PROGRAM                        VARCHAR2(10)
-#   ANALYST                        VARCHAR2(30)
-#   ANALYST_COMMENT                    VARCHAR2(30)
-#   T_EFF                          NUMBER(8,3)
-#   F_EFF                          NUMBER(8,3)
-#   B_EFF                          NUMBER(8,3)
-#   C_EFF                          NUMBER(8,3)
-#   FWHM_ASEC                      NUMBER(8,3)
-#   ELLIPTICITY                        NUMBER(8,3)
-#   SKYBRIGHTNESS                      BINARY_FLOAT
-#   CLOUD_APASS                        NUMBER(8,3)
-#   CLOUD_NOMAD                        NUMBER(8,3)
-#   CLOUD_CATALOG                      VARCHAR2(10)
-#   KLOUD_APASS                        NUMBER(8,3)
-#   KLOUD_NOMAD                        NUMBER(8,3)
-#   N_APASS                        NUMBER(8)
-#   N_NOMAD                        NUMBER(8)
-
-        db_cname="INSERT INTO %s(EXPOSURENAME,EXPNUM,REQNUM,UNITNAME,ATTNUM,CAMSYM,PROCESSED,ACCEPTED,PROGRAM,ANALYST,LASTCHANGED_TIME,T_EFF,F_EFF,B_EFF,C_EFF,FWHM_ASEC,ELLIPTICITY,SKYBRIGHTNESS" % ( db_table )
-        db_value=""" VALUES ('%s', %d, %s, '%s', %s, '%s', '%s', '%s', '%s', '%s', sysdate, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.2f""" % (exp_rec["exp_fname"],exp_rec["expnum"],args.ReqNum, args.UnitName, args.AttNum, args.CamSym, dm_process,dm_accept,prog_name,analyst,exp_rec["teff"],exp_rec["teff_f"],exp_rec["teff_b"],exp_rec["teff_c"],exp_rec["fwhm_world"],exp_rec["ellip_avg"],exp_rec["skyb_avg"])
+    db_cname="INSERT INTO {dbtab:s}(EXPOSURENAME,EXPNUM,PFW_ATTEMPT_ID,CAMSYM,PROCESSED,ACCEPTED,PROGRAM,ANALYST,LASTCHANGED_TIME,T_EFF,F_EFF,B_EFF,C_EFF,FWHM_ASEC,ELLIPTICITY,SKYBRIGHTNESS".format(dbtab=db_table)
+    db_value=""" VALUES ('{expname:s}', {expnum:d}, {pfw_att_id:s}, '{camsym:s}', '{flag_proc:s}', '{flag_accept:s}', '{prog:s}', '{analyst:s}', sysdate, {teff:.3f}, {feff:.3f}, {beff:.3f}, {ceff:.3f}, {fwhm:.3f}, {ellip:.3f}, {skyb:.2f}""".format(
+        expname=exp_rec["exp_fname"],
+        expnum=exp_rec["expnum"], 
+        pfw_att_id=args.attid, 
+        camsym=args.CamSym, 
+        flag_proc=dm_process,
+        flag_accept=dm_accept,
+        prog=prog_name,
+        analyst=analyst,
+        teff=exp_rec["teff"],
+        feff=exp_rec["teff_f"],
+        beff=exp_rec["teff_b"],
+        ceff=exp_rec["teff_c"],
+        fwhm=exp_rec["psfex_fwhm"],
+        ellip=exp_rec["ellip_avg"],
+        skyb=exp_rec["skyb_avg"])
 
 #
 #       Now the columns that may or may not be present
 #
-        if ((exp_rec["apass_magdiff"]>-95.)and(exp_rec["apass_magdiff"]<95.)):
-            db_cname=db_cname+','+'CLOUD_APASS'
-            db_value=db_value+','+"%.3f" % exp_rec["apass_magdiff"]
+    if ((exp_rec["apass_magdiff"]>-95.)and(exp_rec["apass_magdiff"]<95.)):
+        db_cname=db_cname+','+'CLOUD_APASS'
+        db_value=db_value+','+"%.3f" % exp_rec["apass_magdiff"]
 
-        if ((exp_rec["nomad_magdiff"]>-95.)and(exp_rec["nomad_magdiff"]<95.)):
-            db_cname=db_cname+','+'CLOUD_NOMAD'
-            db_value=db_value+','+"%.3f" % exp_rec["nomad_magdiff"]
+    if ((exp_rec["nomad_magdiff"]>-95.)and(exp_rec["nomad_magdiff"]<95.)):
+        db_cname=db_cname+','+'CLOUD_NOMAD'
+        db_value=db_value+','+"%.3f" % exp_rec["nomad_magdiff"]
 
-        db_cname=db_cname+','+'CLOUD_CATALOG'
-        db_value=db_value+','+"'%s'" % exp_rec["cloud_cat"]
+    db_cname=db_cname+','+'CLOUD_CATALOG'
+    db_value=db_value+','+"'%s'" % exp_rec["cloud_cat"]
 
-        if ((exp_rec["apass_kmagdiff"]>-95.)and(exp_rec["apass_kmagdiff"]<95.)):
-            db_cname=db_cname+','+'KLOUD_APASS'
-            db_value=db_value+','+"%.3f" % exp_rec["apass_kmagdiff"]
+    if ((exp_rec["apass_kmagdiff"]>-95.)and(exp_rec["apass_kmagdiff"]<95.)):
+        db_cname=db_cname+','+'KLOUD_APASS'
+        db_value=db_value+','+"%.3f" % exp_rec["apass_kmagdiff"]
 
-        if ((exp_rec["nomad_kmagdiff"]>-95.)and(exp_rec["nomad_kmagdiff"]<95.)):
-            db_cname=db_cname+','+'KLOUD_NOMAD'
-            db_value=db_value+','+"%.3f" % exp_rec["nomad_kmagdiff"]
+    if ((exp_rec["nomad_kmagdiff"]>-95.)and(exp_rec["nomad_kmagdiff"]<95.)):
+        db_cname=db_cname+','+'KLOUD_NOMAD'
+        db_value=db_value+','+"%.3f" % exp_rec["nomad_kmagdiff"]
 
-        if (exp_rec["apass_num"]>-1):
-            db_cname=db_cname+','+'N_APASS'
-            db_value=db_value+','+"%d" % exp_rec["apass_num"]
+    if (exp_rec["apass_num"]>-1):
+        db_cname=db_cname+','+'N_APASS'
+        db_value=db_value+','+"%d" % exp_rec["apass_num"]
 
-        if (exp_rec["nomad_num"]>-1):
-            db_cname=db_cname+','+'N_NOMAD'
-            db_value=db_value+','+"%d" % exp_rec["nomad_num"]
+    if (exp_rec["nomad_num"]>-1):
+        db_cname=db_cname+','+'N_NOMAD'
+        db_value=db_value+','+"%d" % exp_rec["nomad_num"]
 
 #       Finish off the strings that contain columns and value and combine to form INSERT command
 #       Then write and/or perform the insert
 #
-        db_cname=db_cname+")"
-        db_value=db_value+")"
-        insert_command=db_cname+db_value
+    db_cname=db_cname+")"
+    db_value=db_value+")"
+    insert_command=db_cname+db_value
 
-        if(args.updateDB):
-            cur.execute(insert_command)
-        if (args.DB_file):
-            fdbout.write("{:s};\n".format(insert_command))
+    if (args.verbose):
+        print(" {:s}".format(insert_command))
+    if(args.updateDB):
+        print("# Executing insert command")
+        cur.execute(insert_command)
+    if (args.DB_file):
+        fdbout.write("{:s};\n".format(insert_command))
 
 #
 #   Write the summary of the assessment to STDOU
 #
-
     ftxt.write("#                                                                                                         Astrometry \n")     
     ftxt.write("# Exposure                                     FWHM                             #        AIR    EXP  SCMP  HighSN     Depth       APASS           NOMAD      FWHM            \n")
-    ftxt.write("#  Num   STATE    t_eff F_eff  B_eff   C_eff   World  Ellip    Sky_B   N_src   CCD BAND  MASS   TIME Flag sig1  sig2     Assess     dmag    #       dmag    #     Img    Object   \n")
+    ftxt.write("#  Num   STATE    t_eff F_eff  B_eff   C_eff   PSFex  Ellip    Sky_B   N_src   CCD BAND  MASS   TIME Flag sig1  sig2     Assess     dmag    #       dmag    #     Wld    Object   \n")
     ftxt.write("#                                               [\"]           [DN/s]                             [s]      [\"]    [\"]     [mag]    [mag]            [mag]         \n")
 #
-    ftxt.write(" {:9d} {:4s}  {:6.2f} {:6.2f} {:6.2f} {:6.2f}   {:5.2f} {:6.3f} {:8.2f} {:7d}   {:3d} {:1s} {:1d} {:6.3f} {:6.1f} {:2d} {:6.3f} {:6.3f}  {:8.3f} {:8.3f} {:6d} {:8.3f} {:6d} {:6.3f} {:s} \n".format(
-    exp_rec["expnum"],new_decide,exp_rec["teff"],exp_rec["teff_f"],exp_rec["teff_b"],exp_rec["teff_c"],
-    exp_rec["fwhm_world"],exp_rec["ellip_avg"],exp_rec["skyb_avg"],exp_rec["numobj"],
-    exp_rec["numccd"],exp_rec["band"],band2i[exp_rec["band"]],exp_rec["airmass"],exp_rec["exptime"],
-    exp_rec["scamp_sum"],exp_rec["astrom_sig1"],exp_rec["astrom_sig2"],
-    exp_rec["magdiff"],exp_rec["apass_magdiff"],exp_rec["apass_num"],exp_rec["nomad_magdiff"],exp_rec["nomad_num"],exp_rec["fwhm_img"],exp_rec["object"]))
+    ftxt.write(" {expnum:9d} {decide:4s}  {teff:6.2f} {feff:6.2f} {beff:6.2f} {ceff:6.2f}   {fwhm:5.2f} {ellip:6.3f} {skyb:8.2f} {numobj:7d}   {numccd:3d} {band:1s} {iband:1d} {airmass:6.3f} {exptime:6.1f} {dummy:2d} {asig1:6.3f} {asig2:6.3f}  {mdiff:8.3f} {amdiff:8.3f} {anum:6d} {nmdiff:8.3f} {nnum:6d} {fwhm_wld:6.3f} {object:s} \n".format(
+        expnum=exp_rec["expnum"],
+        decide=new_decide,
+        teff=exp_rec["teff"],
+        feff=exp_rec["teff_f"],
+        beff=exp_rec["teff_b"],
+        ceff=exp_rec["teff_c"],
+        fwhm=exp_rec["psfex_fwhm"],
+        ellip=exp_rec["ellip_avg"],
+        skyb=exp_rec["skyb_avg"],
+        numobj=exp_rec["numobj"],
+        numccd=exp_rec["numccd"],
+        band=exp_rec["band"],
+        iband=band2i[exp_rec["band"]],
+        airmass=exp_rec["airmass"],
+        exptime=exp_rec["exptime"],
+        dummy=99,
+        asig1=exp_rec["astrom_sig1"],
+        asig2=exp_rec["astrom_sig2"],
+        mdiff=exp_rec["magdiff"],
+        amdiff=exp_rec["apass_magdiff"],
+        anum=exp_rec["apass_num"],
+        nmdiff=exp_rec["nomad_magdiff"],
+        nnum=exp_rec["nomad_num"],
+        fwhm_wld=exp_rec["fwhm_world"],
+        object=exp_rec["object"]))
 
     if(args.updateDB):
         dbh.commit()
