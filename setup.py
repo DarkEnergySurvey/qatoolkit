@@ -12,5 +12,6 @@ setup(name='qatoolkit',
       package_dir = {'': 'python'},
       scripts = ['bin/assess_SE_products.py',
                  'bin/check_flats.py',
-                 'bin/flats_analysis.py']
-      data_files=[('ups',['ups/qatoolkit.table'])]           
+                 'bin/flats_analysis.py'],
+      data_files=[('ups',['ups/qatoolkit.table'])]          
+    ) 
