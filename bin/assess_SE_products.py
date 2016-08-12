@@ -429,7 +429,7 @@ if __name__ == "__main__":
 #
 #   Setup for database interactions (through despydb)
 #
-    dbh = despydb.desdbi.DesDbi(None,args.section)
+    dbh = despydb.desdbi.DesDbi(None,args.section,retry=True)
     cur = dbh.cursor()
 
 #################################################
@@ -446,7 +446,11 @@ if __name__ == "__main__":
 #
     pixsize=0.263
     fp_rad=1.2
-    fwhm_DMtoQC_offset=1.10
+#   Below (fwhm_DMtoQC_offset was an empirical offset when using FWHM_WORLD)
+    fwhm_DMtoQC_offset_world=1.10
+#   New veresion (an additive offset needed when comparing FWHM_MEAN (from PSFex) with respect to QC)
+    fwhm_DMtoQC_offset_psfex=+0.04
+    
     magerr_thresh=0.1
     magnum_thresh=20
     magbin_min=10.
@@ -473,7 +477,10 @@ if __name__ == "__main__":
             seeing_lim[band]=1.6*kolmogorov["g"]
         else:
             seeing_lim[band]=1.6*kolmogorov[band]
-        seeing_fid[band]=fwhm_DMtoQC_offset*0.9*kolmogorov[band]
+#       Commented version below was needed when using FWHM_WORLD
+#        seeing_fid[band]=fwhm_DMtoQC_offset*0.9*kolmogorov[band]
+#       Now fiducial value is additive (and applied to the FWHM_MEAN value coming from PSFex)
+        seeing_fid[band]=0.9*kolmogorov[band]
 #    print kolmogorov
 #    print seeing_lim
 #    print seeing_fid
@@ -592,7 +599,7 @@ if __name__ == "__main__":
                 c.ccdnum as ccdnum
             from {schema:s}file_archive_info fai, {schema:s}ops_archive oa, {schema:s}catalog c 
             where c.pfw_attempt_id={aid:} 
-                and c.filetype='cat_finalcut' 
+                and (c.filetype='cat_finalcut' or c.filetype='cat_firstcut')
                 and fai.filename=c.filename 
                 and oa.name=fai.archive_name 
             """.format(schema=db_Schema,aid=PFW_Attempt_ID)
@@ -781,6 +788,8 @@ if __name__ == "__main__":
 
     exp_rec['numccd']=len(expnum_chk)
 
+    print len(exptime_chk)
+
 ##############################################################################
 #   Perform the actual checks (and set exposure level values when these pass muster.
 #   First check exptime.
@@ -790,15 +799,17 @@ if __name__ == "__main__":
     uniq_bunit_chk=list(set(bunit_chk))
     uniq_expnum_chk=list(set(expnum_chk))
     uniq_airmass_chk=list(set(airmass_chk))
+    print len(uniq_exptime_chk)
     if (len(uniq_exptime_chk) != 1):
         if (len(uniq_exptime_chk) > 1):
             print "WARNING: Other than one exptime?: ",uniq_exptime_chk
             print "WARNING: Using exptime: ",uniq_exptime_chk[0]
             exp_rec['exptime']=uniq_exptime_chk[0]
         else:
-            print "Aborting: No exptime?: "
-            exit(1)
-    exp_rec['exptime']=uniq_exptime_chk[0]
+            print "No exptime? Setting to NoneType will try to obtain value from EXPOSURE"
+            exp_rec['exptime']=None
+    else:
+        exp_rec['exptime']=uniq_exptime_chk[0]
 #
 #   Now check airmass
 #
@@ -830,8 +841,12 @@ if __name__ == "__main__":
 #   Now check band (also check that it is a sanctioned value)
 #
     if (len(uniq_band_chk) != 1):
-        print "Abort: Other than one band identified?: ",uniq_band_chk
-        exit(1)
+        if (len(uniq_band_chk)==0):
+            print "No band? Really?  Setting to NoneType will try to obtain value from EXPOSURE"
+            exp_rec['band']=None
+        else:
+            print "Abort: Other than one band identified?: ",uniq_band_chk
+            exit(1)
     else:
 #        if (uniq_band_chk[0] in ['u','g','r','i','z','Y','VR']):
         if (uniq_band_chk[0] in band2i):
@@ -924,14 +939,28 @@ if __name__ == "__main__":
 #       And then there are some that need more sanity checks.
 #
         if (rowd['band'] is None):
+            if (exp_rec['band'] is None):
+                print("All attempts to acquire BAND have failed.")
+                print("Abort!")
+                exit(0)
             if (exp_rec["band"] != 'Unknown'):
                 print("WARNING: BAND miss-match between exposure-level (Unknown) and image/catalog-level ({:s}) queries.  Using image/cat-result.".format(exp_rec['band']))
         else:
+            if (exp_rec['band'] is None):
+                if (rowd['band'] in band2i):
+                    exp_rec['band']=rowd['band']
+                else:
+                    print "Abort: Unsupported value for band?: ",rowd['band']
+                    exit(1)
             if (rowd['band'] != exp_rec['band']):
                 print("WARNING: BAND miss-match between exposure-level ({:s}) and image/catalog-level ({:s}) queries.  Using image/cat-result.".format(rowd['band'],exp_rec['band']))
 #
-        if (rowd['exptime'] != exp_rec["exptime"]):
-            print("WARNING: EXPTIME miss-match between exposure-level ({:.1f}) and image/catalog-level ({:.1f}) queries.  Using image/cat-result.".format(rowd['exptime'],exp_rec['exptime']))
+        if (exp_rec['exptime'] is None):
+            print("Fixing exptime using value from EXPOSURE")
+            exp_rec['exptime']=rowd['exptime']
+        else:
+            if (rowd['exptime'] != exp_rec["exptime"]):
+                print("WARNING: EXPTIME miss-match between exposure-level ({:.1f}) and image/catalog-level ({:.1f}) queries.  Using image/cat-result.".format(rowd['exptime'],exp_rec['exptime']))
 
         if (rowd['airmass'] is None):
            print("WARNING: AIRMASS miss-match between exposure-level (Unknown) and image/catalog-level ({:.3f}) queries.  Using image/cat-result.".format(exp_rec['airmass']))
@@ -1907,19 +1936,25 @@ if __name__ == "__main__":
     print("# TIMING (Object number counts): {:.2f}".format((t6-t5a)))
 
 ###############################################################################
-#   Now the calculations for the Teff (and of course the individual components
+#   Now the calculations for the Teff (and of course the individual components)
 #
 #   Calculate F_eff
-#
-#   Note code is now updated to use the psfex_fwhm (rather than fwhm_world)
+#   Note code is now updated to use the psfex_fwhm (with fwhm_world used as a fallback)
 #
     use_fwhm=-1.0
+#   Uncomment the following line if you want to force runs to use FWHM_WORLD (i.e. for tests)
+#    exp_rec['psfex_fwhm']=-1.0
     if (exp_rec['psfex_fwhm']>0.0):
-        use_fwhm=exp_rec['psfex_fwhm']
+#       RAG: Addative, empirical, offset now applied here prior to calculating T_eff
+        use_fwhm=exp_rec['psfex_fwhm']+fwhm_DMtoQC_offset_psfex
     else:
+#       RAG: Multiplicative, empirical, offset (for FWHM_WORLD) now applied here prior to calculating T_eff
         if (exp_rec['fwhm_world']>0.0):
             print("# WARNING:  No FWHM from PSFex... attempting to use FWHM_WORLD")
-            use_fwhm=exp_rec['fwhm_world']
+            use_fwhm=exp_rec['fwhm_world']/fwhm_DMtoQC_offset_world
+#
+#   OK so I lied above... calculate F_eff (NOW!)
+#
     if (use_fwhm > 0.0):
         exp_rec["teff_f"]=(seeing_fid[exp_rec["band"]]*seeing_fid[exp_rec["band"]]/(use_fwhm*use_fwhm))
     else:
