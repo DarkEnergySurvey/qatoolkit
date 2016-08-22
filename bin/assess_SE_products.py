@@ -1232,7 +1232,7 @@ if __name__ == "__main__":
         nomad_parse["mlimit"]=blimit
         nomad_parse["simple"]=False
         nomad_parse['keys']=['ra','dec','mag']
-    elif (exp_rec["band"] == "r"):
+    elif (exp_rec["band"] in ["r","VR"]):
         nomad_parse["mag"]="n.b"
         nomad_parse["mag2"]="n.j"
         nomad_parse["mlimit"]=blimit
