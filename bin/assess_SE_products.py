@@ -743,7 +743,7 @@ if __name__ == "__main__":
 
             gtesta=ccd_info[ccdnum]['gaina']-1.
             gtestb=ccd_info[ccdnum]['gainb']-1.
-            if ((abs(gtesta)<0.25)and(abs(gtestb)<0.25)):
+            if ((abs(gtesta)<0.5)and(abs(gtestb)<0.5)):
 #               The case where gains are 1... therefore units are electrons
                 gfactor=4.0
                 ccd_info[ccdnum]['bunit']='e-'
@@ -753,7 +753,7 @@ if __name__ == "__main__":
             else:
 #               The case where gains are not 1... therefore units are already in counts
                 gfactor=1.0
-                ccd_info[ccdmum]['bunit']='DN'
+                ccd_info[ccdnum]['bunit']='DN'
                 if (args.verbose):
                     print("# GAINA/B for ccdnum={:d} are consistent with units of DN (GAINA:{:.3f},GAINB:{:.3f})".format(
                         ccdnum,ccd_info[ccdnum]['gaina'],ccd_info[ccdnum]['gainb']))
