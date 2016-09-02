@@ -2037,7 +2037,8 @@ if __name__ == "__main__":
         new_decide="unkn"
     elif (exp_rec["teff"]>teff_lim[exp_rec["band"]]):
         new_decide="good"
-        if (exp_rec["fwhm_world"]>seeing_lim[exp_rec["band"]]):
+#        if (exp_rec["fwhm_world"]>seeing_lim[exp_rec["band"]]):
+        if (use_fwhm>seeing_lim[exp_rec["band"]]):
             new_decide="badF"
     else:
         new_decide="badT"
