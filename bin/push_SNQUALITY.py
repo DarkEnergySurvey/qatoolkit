@@ -303,7 +303,7 @@ if __name__ == "__main__":
             dm_accept="False"
         else:
             dm_accept="True"
-        field_constraint="%"+exp_record["field"]+"%"
+        field_constraint="%SN-"+exp_record["field"]+"%"
 
         print exp_record["night"],exp_record["field"],exp_record["band"],dm_accept
     
