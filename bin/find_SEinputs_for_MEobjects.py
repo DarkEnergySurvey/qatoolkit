@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # $Id$
-# $Rev:: 44569                            $:  # Revision of last commit.
-# $LastChangedBy:: rgruendl               $:  # Author of last commit.
+# $Rev: 44569                            $:  # Revision of last commit.
+# $LastChangedBy: rgruendl               $:  # Author of last commit.
 
 """
 Link COADD objects to their associated single-epoch images.
