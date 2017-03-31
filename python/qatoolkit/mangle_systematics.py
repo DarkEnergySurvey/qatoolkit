@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # $Id: mangle_systematics.py 44620 2016-11-17 17:22:35Z rgruendl $
 # $Rev: 44620 $:  # Revision of last commit.
-# $LastChangedBy: rgruendl $:  # Author of last commit.
+# $LastChangedBy$:  # Author of last commit.
 
 """
 Utilities to tie COADD object IDs to their associated single-epoch images and 
@@ -74,10 +74,23 @@ def get_tile_attempt(TileName,ProcTag,dbh,dbSchema,Timing=False,verbose=0):
 
 ########################################################
 def get_moly_array(attemptId,BDict,tableName,dbh,dbSchema,Timing=False,debug=False,verbose=0):
-    """ Query to get a list of objects for a specific COADD tile
-    
-        TableName is provided so the code could work with both COADD_OBJECT
-        and possibly a release table (Y3A1_COADD_OBJECT_SUMMARY).
+    """
+    Query to obtain a set of COADD_OBJECT_IDs and their associated MOLYGON_NUMBERs
+
+    attemptID:  Is the attempt ID for the run that produced the COADD_OBJECTs
+    BDict:      a dictionary that contains bands that will be queried (keys) and 
+                then the values for their associated  column in molyArray
+                    Format is {band1:col1,band2:col2}
+    tableName:  DB table from which to draw the coadd objects.
+                    At a minimum it must have COADD_OBJECT_ID, ALPHAWIN_J2000, DELTAWIN_J2000, and MOLY_NUMBER_{band}
+    dbh:        DB connection
+    dbSchema:   DB schema to use
+    Timing:     Flag to provide timing information
+    debug:      Flag that will return only the first 50 entries for debugging purposes.
+    verbose:    integer that controls the level of verbosity
+
+    Output:
+        molyArray:  a numpy array (Band, Object)
     """
 
     prefetch=100000
