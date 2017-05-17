@@ -24,20 +24,8 @@ import qatoolkit.mangle_systematics as ms
 
 if __name__ == "__main__":
 
-#    import argparse
-#    import os
-#    import despydb.desdbi
-##    import stat
-#    import time
-#    import csv
-#    import sys
-##    import math
-##    import numpy 
-##    import scipy
-#    import datetime
-
     t00=time.time()   
-    parser = argparse.ArgumentParser(description='Code to find single-epoch images that contributed to a set of COADD objects') 
+    parser = argparse.ArgumentParser(description='Example code that finds correspondence between COADD OBJECTS and their underlying single-epoch data products (through Mangle)') 
 
     parser.add_argument('-t','--tile',    action='store', type=str, required=True, help='Tile to work on')
     parser.add_argument('-p','--proctag', action='store', type=str, required=True, help='ProcTag Name')

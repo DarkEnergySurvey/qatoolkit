@@ -32,9 +32,10 @@ def get_tile_attempt(TileName,ProcTag,dbh,dbSchema,Timing=False,verbose=0):
     t0=time.time()
     query="""SELECT
             distinct t.pfw_attempt_id as pfw_attempt_id
-        FROM {schema:s}y3a1_proctag t, {schema:s}y3a1_catalog c
+        FROM {schema:s}mt_proctag t, {schema:s}mt_catalog c
         WHERE t.tag='{ptag:s}' 
             and t.pfw_attempt_id=c.pfw_attempt_id
+            and c.filetype='coadd_cat'
             and c.tilename='{tname:s}'
         """.format(
             schema=dbSchema,ptag=ProcTag,tname=TileName)
@@ -226,7 +227,7 @@ def get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,Timing=False,verbose=0):
         query="""SELECT
             mc.moly_number,
             mc.ccdgon_number
-        FROM {schema:s}y3a1_molygon_ccdgon mc, {tT:s} g
+        FROM {schema:s}mt_molygon_ccdgon mc, {tT:s} g
         WHERE g.id=mc.moly_number
         """.format(schema=dbSchema,tT=tempTable)
 
@@ -281,7 +282,7 @@ def get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,Timing=False,verbose=0):
             i.ccdnum as ccdnum,
             c.ccd_amp as amp,
             c.inverse_variance_weight
-        FROM {schema:s}y3a1_image i, {schema:s}y3a1_ccdgon c, {tT:s} g
+        FROM {schema:s}mt_image i, {schema:s}mt_ccdgon c, {tT:s} g
         WHERE g.id=c.ccdgon_number
             and c.red_image_filename=i.filename
         """.format(schema=dbSchema,tT=tempTable)
