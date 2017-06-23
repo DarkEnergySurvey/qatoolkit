@@ -15,14 +15,16 @@ import numpy as np
 import pandas as pd
     
 ######################################################################################
-def get_tile_attempt(TileName,ProcTag,dbh,dbSchema,Timing=False,verbose=0):
+def get_tile_attempt(TileName,ProcTag,dbh,dbSchema,releasePrefix,Timing=False,verbose=0):
     """ Query code to obtain COADD tile PFW_ATTEMPT_ID after constraining
         that results are part of a specific PROCTAG.
 
         Inputs:
             TileName:  Tilename to be search for
+            ProcTag:   Proctag name containing set to be worked on
             dbh:       Database connection to be used
             dbSchema:  Schema over which queries will occur.
+            releasePrefix: Prefix string (including _'s) to identify a specific set of tables
             verbose:   Integer setting level of verbosity when running.
 
         Returns:
@@ -32,13 +34,13 @@ def get_tile_attempt(TileName,ProcTag,dbh,dbSchema,Timing=False,verbose=0):
     t0=time.time()
     query="""SELECT
             distinct t.pfw_attempt_id as pfw_attempt_id
-        FROM {schema:s}mt_proctag t, {schema:s}mt_catalog c
+        FROM {schema:s}{rpref:s}proctag t, {schema:s}{rpref:s}catalog c
         WHERE t.tag='{ptag:s}' 
             and t.pfw_attempt_id=c.pfw_attempt_id
             and c.filetype='coadd_cat'
             and c.tilename='{tname:s}'
         """.format(
-            schema=dbSchema,ptag=ProcTag,tname=TileName)
+            schema=dbSchema,ptag=ProcTag,tname=TileName,rpref=releasePrefix)
 
     if (verbose > 0):
         if (verbose == 1):
@@ -110,7 +112,7 @@ def get_moly_array(attemptId,BDict,tableName,dbh,dbSchema,Timing=False,debug=Fal
         o.ALPHAWIN_J2000 as ra,
         o.DELTAWIN_J2000 as dec
         {mband:s}
-        FROM {DBtab:s} o
+        FROM {schema:s}{DBtab:s} o
         WHERE o.pfw_attempt_id={AttID:d} {dconst:s}
         """.format(mband=molyBand,schema=dbSchema,DBtab=tableName,AttID=attemptId,dconst=debug_constraint)
 
@@ -162,7 +164,7 @@ def get_moly_array(attemptId,BDict,tableName,dbh,dbSchema,Timing=False,debug=Fal
 
 
 ########################################################
-def get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,Timing=False,verbose=0):
+def get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,releasePrefix,Timing=False,verbose=0):
     """
     Query to take a list of coadd object IDs and obtain dicts that hold:
         1) the CCDGONs associated with a MOLYGON,
@@ -173,6 +175,7 @@ def get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,Timing=False,verbose=0):
                 Format is {band1:col1,band2:col2}
     dbh:        DB connection
     dbSchema:   DB schema to use
+    releasePrefix: Prefix string (including _'s) to identify a specific set of tables
     Timing:     Flag to provide timing information
     verbose:    integer that controls the level of verbosity
 
@@ -227,9 +230,9 @@ def get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,Timing=False,verbose=0):
         query="""SELECT
             mc.moly_number,
             mc.ccdgon_number
-        FROM {schema:s}mt_molygon_ccdgon mc, {tT:s} g
+        FROM {schema:s}{rpref:s}molygon_ccdgon mc, {tT:s} g
         WHERE g.id=mc.moly_number
-        """.format(schema=dbSchema,tT=tempTable)
+        """.format(schema=dbSchema,rpref=releasePrefix,tT=tempTable)
 
 #       Show the query as it executes (if requested).
         if (verbose > 0):
@@ -282,10 +285,10 @@ def get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,Timing=False,verbose=0):
             i.ccdnum as ccdnum,
             c.ccd_amp as amp,
             c.inverse_variance_weight
-        FROM {schema:s}mt_image i, {schema:s}mt_ccdgon c, {tT:s} g
+        FROM {schema:s}{rpref:s}image i, {schema:s}{rpref:s}ccdgon c, {tT:s} g
         WHERE g.id=c.ccdgon_number
             and c.red_image_filename=i.filename
-        """.format(schema=dbSchema,tT=tempTable)
+        """.format(schema=dbSchema,tT=tempTable,rpref=releasePrefix)
 
 #       Show the query as it executes (if requested).
         if (verbose > 0):
