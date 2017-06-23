@@ -29,6 +29,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-t','--tile',    action='store', type=str, required=True, help='Tile to work on')
     parser.add_argument('-p','--proctag', action='store', type=str, required=True, help='ProcTag Name')
+    parser.add_argument('-r','--release', action='store', type=str, default='None', help='Prefix of release that identify tables being used (default="None" which uses an empty string)')
     parser.add_argument('--dbTable',      action='store', type=str, default='coadd_object', help='DB table with objects')
     parser.add_argument('-s','--section', action='store', type=str, default=None,   help='section of .desservices file with connection info')
     parser.add_argument('-S','--Schema',  action='store', type=str, default=None,   help='DB schema (do not include \'.\').')
@@ -54,7 +55,15 @@ if __name__ == "__main__":
     if (args.Schema is None):
         dbSchema=""
     else:
-        dbSchema="%s." % (args.Schema)
+        dbSchema="{:s}.".format(args.Schema)
+
+#
+#   Special Case where args.release = "None"
+#
+    if (args.release == "None"):
+        releasePrefix=""
+    else:
+        releasePrefix="{:s}_".format(args.release)
 
     BandList=['g','r','i','z','Y']
 #   Setup a standard proxy index for each band (in molyArray)
@@ -74,7 +83,7 @@ if __name__ == "__main__":
 
     print("Using tag_constraint of {:s}".format(args.proctag))
 #
-    attemptID=ms.get_tile_attempt(args.tile,args.proctag,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
+    attemptID=ms.get_tile_attempt(args.tile,args.proctag,dbh,dbSchema,releasePrefix,Timing=args.Timing,verbose=verbose)
     print(attemptID)
     if (attemptID is None):
         print("Failed to identify an attempt for TILE={tile:s} for PROCTAG={ptag:s}.".format(tile=args.tile,ptag=args.proctag))
@@ -85,7 +94,7 @@ if __name__ == "__main__":
 #    for i, Id in enumerate(IdArray):
 #        print(" {:d} {:d} {:d} {:d} {:d} {:d} {:d}".format(i,Id,molyArray[0,i],molyArray[1,i],molyArray[2,i],molyArray[3,i],molyArray[4,i]))
 
-    molygonDict,ccdgonDict = ms.get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
+    molygonDict,ccdgonDict = ms.get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,releasePrefix,Timing=args.Timing,verbose=verbose)
 
 #    print(ccdgonDict)
 
