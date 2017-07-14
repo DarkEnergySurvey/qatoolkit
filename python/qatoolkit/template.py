@@ -71,7 +71,7 @@ def get_image_list(imageDict,RaDec,frac,band,ProcTag,releasePrefix,dbh,dbSchema,
             ra1=radec_min[0],ra2=radec_max[0],dec1=radec_min[1],dec2=radec_max[1])
 
     else:
-        query="""SELECT fai.path,i.filename,fai.compression 
+        query="""SELECT fai.path,i.filename,fai.compression
             FROM {schema:s}{rpref:s}image i,{schema:s}{rpref:s}proctag t, {schema:s}{rpref:s}file_archive_info fai 
             WHERE t.tag='{ptag:s}'
                 and t.pfw_attempt_id=i.pfw_attempt_id
@@ -109,12 +109,351 @@ def get_image_list(imageDict,RaDec,frac,band,ProcTag,releasePrefix,dbh,dbSchema,
             imageDict[fname]=rowd
 
     if (verbose>0):
-        print(" Query found {:d} images.".format(len(imageDict)))
+        print(" Initial search query found {:d} images.".format(len(imageDict)))
     if (Timing):
         t1=time.time()
-        print(" Query execution time: {:.2f}".format(t1-t0))
+        print(" Initial search query execution time: {:.2f}".format(t1-t0))
 
     curDB.close()
 
     return imageDict
+
+
+######################################################################################
+def check_blacklist(imageDict,blacklistTable,releasePrefix,dbh,dbSchema,Timing=False,verbose=0):
+
+    """ Query code to check whether images have been blacklisted.
+
+        Inputs:
+            imageDict  Dictionary that holds previous results.
+            blacklistTable: Name of blacklist table
+            releasePrefix: Prefix string (including _'s) to identify a specific set of tables
+            dbh:       Database connection to be used
+            dbSchema:  Schema over which queries will occur.
+            verbose:   Integer setting level of verbosity when running.
+
+        Returns:
+            ImageDict: Image dictionary (with blacklisted images removed)
+    """
+
+    t0=time.time()
+
+    ImgList=[]
+    for img in imageDict:
+        ImgList.append([img])
+
+    # Make sure the GTT_FILENAME table is empty
+#    tempTable="GTT_FILENAME"
+    tempTable="gruendl.my_tmp_filename"
+
+    curDB = dbh.cursor()
+    curDB.execute('delete from {:s}'.format(tempTable))
+    # load filenames into GTT_FILENAME table
+    if (verbose > 0):
+        print("# Loading {:s} table for secondary queries with entries for {:d} images".format(tempTable,len(ImgList)))
+    dbh.insert_many(tempTable,['FILENAME'],ImgList)
+
+#
+#   The main query
+#
+    query="""SELECT g.filename 
+            FROM {schema:s}{rpref:s}image i, {ttab:s} g
+            WHERE g.filename=i.filename
+                and not exists (select 1 from {schema:s}{blist:s} b where b.expnum=i.expnum and b.ccdnum=i.ccdnum)
+            """.format(
+            schema=dbSchema, rpref=releasePrefix, blist=blacklistTable, ttab=tempTable)
+
+    if (verbose > 0):
+        if (verbose == 1):
+            QueryLines=query.split('\n')
+            QueryOneLine='sql = '
+            for line in QueryLines:
+                QueryOneLine=QueryOneLine+" "+line.strip()
+            print("{:s}".format(QueryOneLine))
+        if (verbose > 1):
+            print("{:s}".format(query))
+#
+#   Establish a DB connection
+#
+    curDB.execute(query)
+    desc = [d[0].lower() for d in curDB.description]
+
+#
+#   gather the results
+#
+    keepFileList=[]
+    for row in curDB:
+        rowd = dict(zip(desc, row))
+        keepFileList.append(rowd['filename'])
+
+#
+#   Output fname that will be removed.
+#
+    if (verbose > 2):
+        print("#------------------------------------------")  
+        if (len(imageDict)>len(keepFileList)):
+            for fname in imageDict:
+                if (fname not in keepFileList):
+                    print("#  Blacklist detected.  Will remove image: {:s}".format(fname))
+        else:
+            print("#  No images present in the  Blacklist")  
+
+
+#
+#   Construct new image dictionary with only entries that made it through the check.
+#
+    newImageDict={}
+    for fname in keepFileList:
+        if (fname in imageDict):
+            newImageDict[fname]=imageDict[fname]
+
+    if (verbose>0):
+        print("# Blacklist query results removed {:d} images.  {:d} images remain in dict".format((len(imageDict)-len(newImageDict)),len(newImageDict)))
+    if (Timing):
+        t1=time.time()
+        print("# Blacklist query execution time: {:.2f}".format(t1-t0))
+    print("#------------------------------------------")  
+
+    curDB.close()
+
+    return newImageDict
+
+
+######################################################################################
+def check_zeropoint(imageDict,zptDict,releasePrefix,dbh,dbSchema,Timing=False,verbose=0):
+
+    """ Query code to check whether images have been blacklisted.
+
+        Inputs:
+            imageDict  Dictionary that holds previous results.
+            zpttable:  Zeropoint [table,source,version,flag]
+            dbh:       Database connection to be used
+            dbSchema:  Schema over which queries will occur.
+            verbose:   Integer setting level of verbosity when running.
+
+        Returns:
+            ImageDict: Image dictionary (with blacklisted images removed)
+    """
+
+    t0=time.time()
+
+    ImgList=[]
+    for img in imageDict:
+        ImgList.append([img])
+
+    # Make sure the GTT_FILENAME table is empty
+#    tempTable="GTT_FILENAME"
+    tempTable="gruendl.my_tmp_filename"
+
+    curDB = dbh.cursor()
+    curDB.execute('delete from {:s}'.format(tempTable))
+    # load filenames into GTT_FILENAME table
+    if (verbose > 0):
+        print("# Loading {:s} table for secondary queries with entries for {:d} images".format(tempTable,len(ImgList)))
+    dbh.insert_many(tempTable,['FILENAME'],ImgList)
+
+#
+#   The main query
+#
+    query="""SELECT g.filename, z.mag_zero, z.sigma_mag_zero
+            FROM {ttab:s} g, {schema:s}{zptab:s} z 
+            WHERE g.filename=z.imagename
+                and z.source='{zsrc:s}' 
+                and z.version='{zver:s}' 
+                and z.flag<{zflag:s} 
+            """.format(
+            schema=dbSchema, zptab=zptDict['table'], zsrc=zptDict['source'], zver=zptDict['version'], zflag=zptDict['flag'], ttab=tempTable)
+
+    if (verbose > 0):
+        if (verbose == 1):
+            QueryLines=query.split('\n')
+            QueryOneLine='sql = '
+            for line in QueryLines:
+                QueryOneLine=QueryOneLine+" "+line.strip()
+            print("{:s}".format(QueryOneLine))
+        if (verbose > 1):
+            print("{:s}".format(query))
+#
+#   Establish a DB connection
+#
+    curDB.execute(query)
+    desc = [d[0].lower() for d in curDB.description]
+
+#
+#   gather the results
+#
+    keepFileList=[]
+    for row in curDB:
+        rowd = dict(zip(desc, row))
+        fname=rowd['filename']
+        if (fname in imageDict):
+            imageDict[fname]['mag_zero']=rowd['mag_zero']
+            imageDict[fname]['sigma_mag_zero']=rowd['sigma_mag_zero']
+        keepFileList.append(fname)
+#
+#   Output fname that will be removed.
+#
+    if (verbose > 2):
+        print("#------------------------------------------")  
+        if (len(imageDict)>len(keepFileList)):
+            for fname in imageDict:
+                if (fname not in keepFileList):
+                     print("#  Zeropoint not found.  Will remove image: {:s}".format(fname))
+        else:
+            print("#  All images have a zeropoint")  
+
+#
+#   Construct new image dictionary with only entries that made it through the check.
+#
+    newImageDict={}
+    for fname in keepFileList:
+        if (fname in imageDict):
+            newImageDict[fname]=imageDict[fname]
+
+    if (verbose>0):
+        print("# Zeropoint query results removed {:d} images.  {:d} images remain in dict".format((len(imageDict)-len(newImageDict)),len(newImageDict)))
+    if (Timing):
+        t1=time.time()
+        print("# Zeropoint query execution time: {:.2f}".format(t1-t0))
+    print("#------------------------------------------")  
+
+    curDB.close()
+
+    return newImageDict
+
+
+######################################################################################
+def check_eval(imageDict,evalDict,band,releasePrefix,dbh,dbSchema,Timing=False,verbose=0):
+
+    """ Query code to check whether images have been blacklisted.
+
+        Inputs:
+            imageDict: Dictionary that holds previous results.
+            evalDict:  Dictionary configuration for query [table]
+            dbh:       Database connection to be used
+            dbSchema:  Schema over which queries will occur.
+            verbose:   Integer setting level of verbosity when running.
+
+        Returns:
+            ImageDict: Image dictionary (with blacklisted images removed)
+    """
+
+    t0=time.time()
+
+    ImgList=[]
+    for img in imageDict:
+        ImgList.append([img])
+
+    # Make sure the GTT_FILENAME table is empty
+#    tempTable="GTT_FILENAME"
+    tempTable="gruendl.my_tmp_filename"
+
+    curDB = dbh.cursor()
+    curDB.execute('delete from {:s}'.format(tempTable))
+    # load filenames into GTT_FILENAME table
+    if (verbose > 0):
+        print("# Loading {:s} table for secondary queries with entries for {:d} images".format(tempTable,len(ImgList)))
+    dbh.insert_many(tempTable,['FILENAME'],ImgList)
+
+#
+#   The main query
+#   RAG: Note that work would need to be done here to facilitate using tables other than QA_SUMMARY
+#
+    query="""SELECT g.filename, 
+                q.psf_fwhm as fwhm, 
+                CASE WHEN q.t_eff < 0.0 THEN q.f_eff*q.b_eff ELSE q.t_eff END as t_eff
+            FROM {ttab:s} g, {schema:s}{rpref:s}image i, {schema:s}{etab:s} q 
+            WHERE g.filename=i.filename
+                and i.pfw_attempt_id=q.pfw_attempt_id
+            """.format(
+            schema=dbSchema, etab=evalDict['table'], ttab=tempTable, rpref=releasePrefix)
+
+    if (verbose > 0):
+        if (verbose == 1):
+            QueryLines=query.split('\n')
+            QueryOneLine='sql = '
+            for line in QueryLines:
+                QueryOneLine=QueryOneLine+" "+line.strip()
+            print("{:s}".format(QueryOneLine))
+        if (verbose > 1):
+            print("{:s}".format(query))
+#
+#   Establish a DB connection
+#
+    curDB.execute(query)
+    desc = [d[0].lower() for d in curDB.description]
+
+#
+#   gather the results
+#
+    keepFileList=[]
+    for row in curDB:
+        rowd = dict(zip(desc, row))
+        fname=rowd['filename']
+        if (fname in imageDict):
+            imageDict[fname]['fwhm']=rowd['fwhm']
+            imageDict[fname]['t_eff']=rowd['t_eff']
+        keepFileList.append(fname)
+#
+#   Output fname that will be removed.
+#
+    if (verbose > 2):
+        print("#------------------------------------------")  
+        if (len(imageDict)>len(keepFileList)):
+            for fname in imageDict:
+                if (fname not in keepFileList):
+                     print("#  Evaluation (QA_SUMMARY) not found.  Will remove image: {:s}".format(fname))
+        else:
+            print("#  All images have an evaluation")  
+
+#
+#   Construct new image dictionary with only entries that made it through the check.
+#
+    size_imageDict=len(imageDict)
+    newImageDict={}
+    for fname in keepFileList:
+        if (fname in imageDict):
+            newImageDict[fname]=imageDict[fname]
+
+#
+#   Now check remaining entries to see whether they meet quality criteria.
+#
+
+    imageDict=newImageDict
+    keepFileList=[]
+    for fname in imageDict:
+        keepFile=True
+        if (imageDict[fname]['t_eff']<evalDict['teff_cut'][band]):
+            keepFile=False
+            print("#  T_EFF= {:6.3f}.  Will remove image: {:s}".format(imageDict[fname]['t_eff'],fname))
+        if (imageDict[fname]['fwhm']>evalDict['fwhm_cut'][band]):
+            keepFile=False
+            print("#   FWHM= {:6.3f}.  Will remove image: {:s}".format(imageDict[fname]['fwhm'],fname))
+        if (keepFile):
+            keepFileList.append(fname)
+    
+    newImageDict={}
+    for fname in keepFileList:
+        if (fname in imageDict):
+            newImageDict[fname]=imageDict[fname]
+
+    if (verbose>0):
+        print("# QA query results removed {:d} images.  {:d} images remain in dict".format((len(imageDict)-len(newImageDict)),len(newImageDict)))
+    if (Timing):
+        t1=time.time()
+        print("# QA query execution time: {:.2f}".format(t1-t0))
+    print("#------------------------------------------")  
+
+    curDB.close()
+
+    return newImageDict
+
+
+######################################################################################
+
+
+
+
+
+
 

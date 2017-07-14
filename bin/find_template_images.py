@@ -35,7 +35,12 @@ if __name__ == "__main__":
     parser.add_argument('--release',      action='store', type=str, default='Y3A2', help='Prefix specifying a set of release table (Use "None" when working with PROD in DESOPER)')
     parser.add_argument('-s','--section', action='store', type=str, default=None,   help='section of .desservices file with connection info')
     parser.add_argument('-S','--Schema',  action='store', type=str, default=None,   help='DB schema (do not include \'.\').')
-
+    parser.add_argument('--use_blacklist', action='store_true', default=False, help='Flag to constrain results to not appear in the blacklist')
+    parser.add_argument('--blacklist',     action='store', type=str, default='Y3A2_BLACKLIST', help='Over-ride name of blacklist table to use (default=Y3A2_BLACKLIST)')
+    parser.add_argument('--use_eval',     action='store_true', default=False, help='Flag to constrain results to match DES survey quality cuts')
+    parser.add_argument('--evaltable',     action='store', type=str, default='Y3A2_QA_SUMMARY', help='Over-ride name of evaluation table to use (default=Y3A2_QA_SUMMARY)')
+    parser.add_argument('--use_zpt',      action='store_true', default=False, help='Flag to constrain results to have a zeropoint available')
+    parser.add_argument('--zpttable',     action='store', type=str, default='Y3A2_ZEROPOINT,FGCM,v2.0,16', help='Over-ride default zeropoint criteia (default=Y3A2_ZEROPOINT,FGCM,v2.0,16)')
     parser.add_argument('-T','--Timing',  action='store_true', default=False, help='If set timing information accompanies output')
     parser.add_argument('--debug'       , action='store_true', default=False, help='Debug mode resticts code to work on a handful of objects')
     parser.add_argument('-v','--verbose', action='store', type=int, default=0, help='Verbosity (defualt:0; currently values up to 2)')
@@ -68,6 +73,29 @@ if __name__ == "__main__":
     else:
         frac=np.array([float(args.frac),float(args.frac)])
 
+#
+#   Parse the zpttable into a dictionary
+#
+    zptDict={}
+    zptlist=args.zpttable.split(',')
+    zptDict['table']=zptlist[0]
+    zptDict['source']=zptlist[1]
+    zptDict['version']=zptlist[2]
+    zptDict['flag']=zptlist[3]
+
+#
+#   Eval Dict
+#
+    evalDict={}
+    evalDict['table']=args.evaltable
+    evalDict['teff_cut']={'g':0.2,'r':0.3,'i':0.3,'z':0.3,'Y':0.2}
+#   Flat seeing cut
+#    evalDict['fwhm_cut']={'g':2.0,'r':2.0,'i':2.0,'z':2.0,'Y':2.0}
+#   Kolmogorov cut with FWHM_ASEC in legacy versions of FIRST/FINALCUT_EVAL
+#    evalDict['fwhm_cut']={'g':1.7648,'r':1.6656,'i':1.6,'z':1.544,'Y':1.7648,'u':1.7648,'VR':1.7648}
+#   Kolmogorov cut with PSF_FWHM used in QA_SUMMARY and later versions of FIRST/FINALCUT_EVAL
+    evalDict['fwhm_cut']={'g':1.7248,'r':1.6256,'i':1.56,'z':1.504,'Y':1.7248,'u':1.7248,'VR':1.7648}
+
 #    print(radec)
 #    print(frac)
 
@@ -86,8 +114,27 @@ if __name__ == "__main__":
     imageDict={}
     imageDict=tm.get_image_list(imageDict,radec,frac,args.band,args.proctag,releasePrefix,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
 
+    if (args.use_blacklist):
+        imageDict=tm.check_blacklist(imageDict,args.blacklist,releasePrefix,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
+
+    if (args.use_zpt):
+        imageDict=tm.check_zeropoint(imageDict,zptDict,releasePrefix,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
+
+    if (args.use_eval):
+        imageDict=tm.check_eval(imageDict,evalDict,args.band,releasePrefix,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
+
+
     for image in imageDict:
-        print("/archive_data/desarchive/{:s}/{:s}{:s}".format(imageDict[image]['path'],imageDict[image]['filename'],imageDict[image]['compression']))
+        if (args.use_eval):
+            print("/archive_data/desarchive/{path:s}/{fname:s}{compress:s} {t_eff:6.3f} {fwhm:6.3f}".format(
+                path=imageDict[image]['path'],
+                fname=imageDict[image]['filename'],
+                compress=imageDict[image]['compression'],
+                t_eff=imageDict[image]['t_eff'],
+                fwhm=imageDict[image]['fwhm']
+            ))
+        else:
+            print("/archive_data/desarchive/{:s}/{:s}{:s}".format(imageDict[image]['path'],imageDict[image]['filename'],imageDict[image]['compression']))
 
     t11=time.time()
     print("Total execution time was {:.2f} seconds".format(t11-t00))
