@@ -25,5 +25,9 @@ setupRequired(cfitsio 3.370+0)
 setupRequired(ds9 7.2+1)    
 setupRequired(xpa 2.1.14+3) 
 
+# for revised version of assess_SE_products.py
+setupRequired(pandas 0.15.2+4)
+setupRequired(astropy 1.1.2+3)
+
 envAppend(PATH, ${PRODUCT_DIR}/bin)
 envAppend(PYTHONPATH, ${PRODUCT_DIR}/python/)
