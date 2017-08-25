@@ -76,7 +76,7 @@ def get_tile_attempt(TileName,ProcTag,dbh,dbSchema,releasePrefix,Timing=False,ve
 
 
 ########################################################
-def get_moly_array(attemptId,BDict,tableName,dbh,dbSchema,Timing=False,debug=False,verbose=0):
+def get_moly_array(attemptId,BDict,tableName,dbh,dbSchema,Timing=False,debug=False,verbose=0,returnRadec=False):
     """
     Query to obtain a set of COADD_OBJECT_IDs and their associated MOLYGON_NUMBERs
 
@@ -147,6 +147,8 @@ def get_moly_array(attemptId,BDict,tableName,dbh,dbSchema,Timing=False,debug=Fal
 
 #   now collate into fgcm_y3a1_tools format
     ids=np.array(data['COADD_OBJECT_ID'],dtype=np.int64)
+    ras=np.array(data['RA'],dtype=np.float64)
+    decs=np.array(data['DEC'],dtype=np.float64)
 #    print(max(data['COADD_OBJECT_ID']))
 #    exit(0)
 #   how many objects are there?
@@ -160,7 +162,10 @@ def get_moly_array(attemptId,BDict,tableName,dbh,dbSchema,Timing=False,debug=Fal
         t2=time.time()
         print(" Formed final Moly_number arrays with {:d} objects. Execution time: {:.2f}".format(molyArray.shape[1],t2-t1))
 
-    return molyArray,ids
+    if returnRadec:
+        return molyArray,ids,ras,decs
+    else:
+        return molyArray,ids
 
 
 ########################################################
