@@ -1,4 +1,8 @@
 #! /usr/bin/env python
+# $Id$
+# $Rev: 44620 $:  # Revision of last commit.
+# $LastChangedBy: rgruendl $:  # Author of last commit.
+
 """
 Perfoms an assessent of exposures from a first/final cut run.  The quality 
 of the exposures is based upon the seeing (FWHM), background, and extinction
@@ -64,7 +68,7 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra (debug) messages to stdout')
     parser.add_argument('--format_query',  action='store_true', default=False, help='Print queries with formatting (default=False)')
     parser.add_argument('-s', '--section', action='store', type=str, default=None, help='section of .desservices file with connection info')
-    parser.add_argument('--scisection',    action='store', type=str, default='db-dessci', help='section of .desservices file with connection info for DESSCI (default=db-dessci)')
+    parser.add_argument('--scisection',    action='store', type=str, default=None, help='section of .desservices file with connection info for DESSCI (default=None)')
     parser.add_argument('-S', '--Schema', action='store', type=str, default=None, help='Schema')
 
     args = parser.parse_args()
@@ -131,7 +135,8 @@ if __name__ == "__main__":
 #   Setup for database interactions (through despydb)
 #
     dbh = despydb.desdbi.DesDbi(None,args.section,retry=True)
-    dbhsci = despydb.desdbi.DesDbi(None,args.scisection,retry=True)
+    if (not(args.scisection is None)):
+        dbhsci = despydb.desdbi.DesDbi(None,args.scisection,retry=True)
     cur = dbh.cursor()
 
 #################################################
@@ -1005,7 +1010,7 @@ if __name__ == "__main__":
         print("Band={:s} not supported for APASS calibration.  Will skip".format(exp_rec['band']))
 
     if (exp_rec['band'] in ['g','r','i','z','Y']):
-        qparse['des']={'pname':'Y3A2','tab':'Y3A2_COADD_OBJECT_SUMMARY','tab_abbrev':'cos','db':'sci','ra':'cos.alphawin_j2000','dec':'cos.deltawin_j2000'}
+        qparse['des']={'pname':'Y3A2','tab':'Y3A2_COS_SUBSET','tab_abbrev':'cos','db':'oper','ra':'cos.alphawin_j2000','dec':'cos.deltawin_j2000'}
         qparse['des']['mag']='cos.wavg_mag_psf_{:s}'.format(exp_rec['band'])
         qparse['des']['dmag']="cos.wavg_magerr_psf_{:s}".format(exp_rec['band'])
         qparse['des']['spread_model']="cos.wavg_spread_model_{:s}".format(exp_rec['band'])
