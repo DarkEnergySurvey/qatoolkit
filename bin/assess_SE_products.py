@@ -164,22 +164,22 @@ if __name__ == "__main__":
     magbin_max=25.
     magbin_step=0.25
     mbin=numpy.arange(magbin_min,magbin_max,magbin_step)
-    band2i={'u':0,'g':1,'r':2,'i':3,'z':4,'Y':5,'VR':6}
+    band2i={'u':0,'g':1,'r':2,'i':3,'z':4,'Y':5,'VR':6,'N964':7}
 #
 #   Old ellipticity limits (currently not used)
 #
 #    ellip_lim=0.13
 #    ellip_good=0.07
 #
-    kolmogorov={'u':1.2,'g':1.103,'r':1.041,'i':1.00,'z':0.965,'Y':0.95,'VR':1.04}
-    teff_lim={  'u':0.2,'g':0.2,  'r':0.3,  'i':0.3, 'z':0.3,  'Y':0.2,'VR':0.3}
+    kolmogorov={'u':1.2,'g':1.103,'r':1.041,'i':1.00,'z':0.965,'Y':0.95,'VR':1.04,'N964':0.965}
+    teff_lim={  'u':0.2,'g':0.2,  'r':0.3,  'i':0.3, 'z':0.3,  'Y':0.2,'VR':0.3,'N964':0.3}
     seeing_lim={}
     seeing_fid={}
 #
 #   Set seeing cutoff to be 1.6 times Kolmogov except at "Y" which should
 #   be forced to match that at g-band
 #
-    for band in ['u','g','r','i','z','Y','VR']:
+    for band in ['u','g','r','i','z','Y','VR','N964']:
         if (band == "Y"):
             seeing_lim[band]=1.6*kolmogorov['g']
         else:
@@ -195,8 +195,8 @@ if __name__ == "__main__":
 #   Surface brightness limits from Eric Nielson which were derived "...from a few 
 #   exposures from a photometric night in SV with little moon (20121215)"
 #
-    sbrite_good={"u":0.2,"g":1.05,"r":2.66,"i":7.87,"z":16.51,"Y":14.56,"VR":3.71}
-    sbrite_lim={"u":0.8,"g":4.0,"r":9.58,"i":21.9,"z":50.2,"Y":27.6,"VR":13.58}
+    sbrite_good={"u":0.2,"g":1.05,"r":2.66,"i":7.87,"z":16.51,"Y":14.56,"VR":3.71,"N964":0.4}
+    sbrite_lim={"u":0.8,"g":4.0,"r":9.58,"i":21.9,"z":50.2,"Y":27.6,"VR":13.58,"N964":20.2}
 #
 #   These (the above) were originally based on the following estimate by Annis
 #   sbrite_good={"u":2.0,"g":1.2,"r":3.8,"i":8.7,"z":20.0,"Y":11.0}
@@ -228,12 +228,12 @@ if __name__ == "__main__":
     else:
         use_mag_type='AUTO'
 
-    cat_mag_corr={'apass':{'u':3.5,'g':0.205,'r':0.128,'i':0.112,'z':0.0,'Y':0.0,'VR':0.0},
-                  'nomad':{'u':3.65,'g':0.341,'r':0.235,'i':1.398,'z':1.201,'Y':1.083,'VR':0.0},
-                  'des':{'u':0.0,'g':0.248,'r':0.175,'i':0.078,'z':0.08,'Y':0.06,'VR':0.0}}
-    cat_kmag_corr={'apass':{'u':0.0,'g':0.000,'r':0.000,'i':0.000,'z':0.0,'Y':0.0,'VR':0.0},
-                  'nomad':{'u':0.0,'g':0.111,'r':0.109,'i':1.289,'z':1.139,'Y':1.022,'VR':0.0},
-                  'des':{'u':0.0,'g':0.000,'r':0.000,'i':0.000,'z':0.0,'Y':0.0,'VR':0.0}}
+    cat_mag_corr={'apass':{'u':3.5,'g':0.205,'r':0.128,'i':0.112,'z':0.0,'Y':0.0,'VR':0.0,'N964':3.56},
+                  'nomad':{'u':3.65,'g':0.341,'r':0.235,'i':1.398,'z':1.201,'Y':1.083,'VR':0.0,'N964':4.67},
+                  'des':{'u':0.0,'g':0.248,'r':0.175,'i':0.078,'z':0.08,'Y':0.06,'VR':0.0,'N964':3.56}}
+    cat_kmag_corr={'apass':{'u':0.0,'g':0.000,'r':0.000,'i':0.000,'z':0.0,'Y':0.0,'VR':0.0,'N964':0.0},
+                  'nomad':{'u':0.0,'g':0.111,'r':0.109,'i':1.289,'z':1.139,'Y':1.022,'VR':0.0,'N964':0.0},
+                  'des':{'u':0.0,'g':0.000,'r':0.000,'i':0.000,'z':0.0,'Y':0.0,'VR':0.0,'N964':0.0}}
 #
 #   NOMAD B-mag correction
 #
@@ -270,7 +270,7 @@ if __name__ == "__main__":
 #
 #   A set of aterm(s) that represent an estimate for the nominal zeropoint on a clear, photometric night.
 #
-    aterm=numpy.zeros(7,dtype=numpy.float32)
+    aterm=numpy.zeros(8,dtype=numpy.float32)
     aterm[band2i['u']]=-25.0
     aterm[band2i['g']]=-25.428
     aterm[band2i['r']]=-25.532
@@ -278,10 +278,11 @@ if __name__ == "__main__":
     aterm[band2i['z']]=-25.086
     aterm[band2i['Y']]=-24.000
     aterm[band2i['VR']]=-25.47
+    aterm[band2i['N964']]=-25.086
 #
 #   A set of kterm(s) that represent an estimate for the nominal extinction/airmass correction on a clear, photometric night.
 #
-    kterm=numpy.zeros(7,dtype=numpy.float32)
+    kterm=numpy.zeros(8,dtype=numpy.float32)
     kterm[band2i['u']]=0.489
     kterm[band2i['g']]=0.181
     kterm[band2i['r']]=0.095
@@ -289,6 +290,7 @@ if __name__ == "__main__":
     kterm[band2i['z']]=0.053
     kterm[band2i['Y']]=0.05
     kterm[band2i['VR']]=0.13
+    kterm[band2i['N964']]=0.053
 
     print("####################################################")
     print("# Initialized. ")
@@ -978,7 +980,7 @@ if __name__ == "__main__":
         qparse['nomad']['mlimit2']=jlimit
         qparse['nomad']['simple']=False
         qparse['nomad']['keys']=['ra','dec','mag','mag2']
-    elif (exp_rec['band'] in ['i','z','Y']):
+    elif (exp_rec['band'] in ['i','z','Y','N964']):
         qparse['nomad']['mag']='n.j'
         qparse['nomad']['mlimit']=jlimit
         qparse['nomad']['simple']=True
@@ -990,7 +992,7 @@ if __name__ == "__main__":
         qparse['nomad']['simple']=True
         qparse['nomad']['keys']=['ra','dec','mag']
 
-    if (exp_rec['band'] in ['u','g','r','i','z','Y']):
+    if (exp_rec['band'] in ['u','g','r','i','z','Y','N964']):
         qparse['apass']={'pname':'APASS','tab':'APASS_DR7','tab_abbrev':'a','db':'oper','ra':'a.ra','dec':'a.dec'}
         if (exp_rec['band'] in ['u','g']):
             qparse['apass']['mag']='a.g'
@@ -1000,7 +1002,7 @@ if __name__ == "__main__":
             qparse['apass']['mag']='a.r'
             qparse['apass']['dmag']='a.r_err'
             qparse['apass']['mlimit']=rlimit
-        elif (exp_rec['band'] in ['i','z','Y']):
+        elif (exp_rec['band'] in ['i','z','Y','N964']):
             qparse['apass']['mag']='a.i'
             qparse['apass']['dmag']='a.i_err'
             qparse['apass']['mlimit']=ilimit
@@ -1015,6 +1017,14 @@ if __name__ == "__main__":
         qparse['des']['dmag']="cos.wavg_magerr_psf_{:s}".format(exp_rec['band'])
         qparse['des']['spread_model']="cos.wavg_spread_model_{:s}".format(exp_rec['band'])
         qparse['des']['spreaderr_model']="cos.wavg_spreaderr_model_{:s}".format(exp_rec['band'])
+        qparse['des']['mlimit']=glimit
+        qparse['des']['keys']=['ra','dec','mag','dmag','spread_model','spreaderr_model']
+    elif (exp_rec['band'] in ['N964']):
+        qparse['des']={'pname':'Y3A2','tab':'Y3A2_COS_SUBSET','tab_abbrev':'cos','db':'oper','ra':'cos.alphawin_j2000','dec':'cos.deltawin_j2000'}
+        qparse['des']['mag']='cos.wavg_mag_psf_{:s}'.format('z')
+        qparse['des']['dmag']="cos.wavg_magerr_psf_{:s}".format('z')
+        qparse['des']['spread_model']="cos.wavg_spread_model_{:s}".format('z')
+        qparse['des']['spreaderr_model']="cos.wavg_spreaderr_model_{:s}".format('z')
         qparse['des']['mlimit']=glimit
         qparse['des']['keys']=['ra','dec','mag','dmag','spread_model','spreaderr_model']
     else:
@@ -1048,10 +1058,16 @@ if __name__ == "__main__":
             m1=qparse['apass']['mag'],
             ml1=qparse['apass']['mlimit'])
     if ('des' in qparse):
-        qparse['des']['constraint']=' and {m1:s}<{ml1:.1f} and cos.nepochs_{bval:s}>0'.format(
-            m1=qparse['des']['mag'],
-            ml1=qparse['des']['mlimit'],
-            bval=exp_rec['band'])
+        if (exp_rec['band']=='N964'):
+            qparse['des']['constraint']=' and {m1:s}<{ml1:.1f} and cos.nepochs_{bval:s}>0'.format(
+                m1=qparse['des']['mag'],
+                ml1=qparse['des']['mlimit'],
+                bval='z')
+        else:
+            qparse['des']['constraint']=' and {m1:s}<{ml1:.1f} and cos.nepochs_{bval:s}>0'.format(
+                m1=qparse['des']['mag'],
+                ml1=qparse['des']['mlimit'],
+                bval=exp_rec['band'])
 
     if (args.verbose):
         for cat in qparse:
@@ -1310,11 +1326,11 @@ if __name__ == "__main__":
 #             "nomad":['u','g','r','i','z','Y','VR']}
     transparency_calc=False
     if ('apass' in cat_match):
-        cat_match['apass']['banduse']=['g','r','i']
+        cat_match['apass']['banduse']=['g','r','i','N964']
     if ('nomad' in cat_match):
-        cat_match['nomad']['banduse']=['u','g','r','i','z','Y','VR']
+        cat_match['nomad']['banduse']=['u','g','r','i','z','Y','VR','N964']
     if ('des' in cat_match):
-        cat_match['des']['banduse']=['g','r','i','z','Y']
+        cat_match['des']['banduse']=['g','r','i','z','Y','N964']
 
 #
 #   New copy of exp_cat so that can make cuts to remove non-stellar objects
