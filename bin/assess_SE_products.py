@@ -695,7 +695,7 @@ if __name__ == "__main__":
            print("WARNING: AIRMASS miss-match between exposure-level (Unknown) and image/catalog-level ({:.3f}) queries.  Using image/cat-result.".format(exp_rec['airmass']))
         else:
             if (rowd['airmass'] != exp_rec['airmass']):
-                print("WARNING: AIRMASS miss-match between exposure-level ({.3f}) and image/catalog-level ({:.3f}) queries.  Using image/cat-result.".format(rowd['airmass'],exp_rec['airmass']))
+                print("WARNING: AIRMASS miss-match between exposure-level ({:.3f}) and image/catalog-level ({:.3f}) queries.  Using image/cat-result.".format(rowd['airmass'],exp_rec['airmass']))
 #
 #       Work out whether the exposure is part of the general survey, SN, or other.
 #
