@@ -229,7 +229,7 @@ if __name__ == "__main__":
         use_mag_type='AUTO'
 
     cat_mag_corr={'apass':{'u':3.5,'g':0.205,'r':0.128,'i':0.112,'z':0.0,'Y':0.0,'VR':0.0,'N964':3.56},
-                  'nomad':{'u':3.65,'g':0.341,'r':0.235,'i':1.398,'z':1.201,'Y':1.083,'VR':0.0,'N964':4.67},
+                  'nomad':{'u':3.65,'g':0.341,'r':0.235,'i':1.398,'z':1.201,'Y':1.083,'VR':0.235,'N964':4.67},
                   'des':{'u':0.0,'g':0.248,'r':0.175,'i':0.078,'z':0.08,'Y':0.06,'VR':0.0,'N964':3.56}}
     cat_kmag_corr={'apass':{'u':0.0,'g':0.000,'r':0.000,'i':0.000,'z':0.0,'Y':0.0,'VR':0.0,'N964':0.0},
                   'nomad':{'u':0.0,'g':0.111,'r':0.109,'i':1.289,'z':1.139,'Y':1.022,'VR':0.0,'N964':0.0},
@@ -451,6 +451,21 @@ if __name__ == "__main__":
         if (ccd_info[ccdnum]['airmass'] is None):
             ccd_info[ccdnum]['airmass']=1.2
             print("# Warning: Null found for AIRMASS (default to 1.2)")
+
+        if (ccd_info[ccdnum]['skybrite'] is None):
+#
+#           Note this can occur if the PCA Sky subrtaction is not used..
+#
+            ccd_info[ccdnum]['skybrite']=sbrite_good[ccd_info[ccdnum]['band']]
+            ccd_info[ccdnum]['skysigma']=1.0
+            print("# Warning: Null found for SKYBRITE (default SKYBRITE to {:.2f} and SKYSIGMA to 1.0)".format(sbrite_good[ccd_info[ccdnum]['band']]))
+
+        if (ccd_info[ccdnum]['skysigma'] is None):
+#
+#           Note this can occur if the PCA Sky subrtaction is not used..
+#
+            ccd_info[ccdnum]['skysigma']=1.0
+            print("# Warning: Null found for SKYSIGMA (but apparently not SKYBRITE?... default SKYSIGMA to 1.0)")
 
         if ((ccd_info[ccdnum]['rac1'] is None)or(ccd_info[ccdnum]['rac2'] is None)or
             (ccd_info[ccdnum]['rac3'] is None)or(ccd_info[ccdnum]['rac4'] is None)):
@@ -1019,6 +1034,14 @@ if __name__ == "__main__":
         qparse['des']['spreaderr_model']="cos.wavg_spreaderr_model_{:s}".format(exp_rec['band'])
         qparse['des']['mlimit']=glimit
         qparse['des']['keys']=['ra','dec','mag','dmag','spread_model','spreaderr_model']
+    elif (exp_rec['band'] in ['VR']):
+        qparse['des']={'pname':'Y3A2','tab':'Y3A2_COS_SUBSET','tab_abbrev':'cos','db':'oper','ra':'cos.alphawin_j2000','dec':'cos.deltawin_j2000'}
+        qparse['des']['mag']='cos.wavg_mag_psf_{:s}'.format('r')
+        qparse['des']['dmag']="cos.wavg_magerr_psf_{:s}".format('r')
+        qparse['des']['spread_model']="cos.wavg_spread_model_{:s}".format('r')
+        qparse['des']['spreaderr_model']="cos.wavg_spreaderr_model_{:s}".format('r')
+        qparse['des']['mlimit']=glimit
+        qparse['des']['keys']=['ra','dec','mag','dmag','spread_model','spreaderr_model']
     elif (exp_rec['band'] in ['N964']):
         qparse['des']={'pname':'Y3A2','tab':'Y3A2_COS_SUBSET','tab_abbrev':'cos','db':'oper','ra':'cos.alphawin_j2000','dec':'cos.deltawin_j2000'}
         qparse['des']['mag']='cos.wavg_mag_psf_{:s}'.format('z')
@@ -1063,6 +1086,11 @@ if __name__ == "__main__":
                 m1=qparse['des']['mag'],
                 ml1=qparse['des']['mlimit'],
                 bval='z')
+        elif (exp_rec['band']=='VR'):
+            qparse['des']['constraint']=' and {m1:s}<{ml1:.1f} and cos.nepochs_{bval:s}>0'.format(
+                m1=qparse['des']['mag'],
+                ml1=qparse['des']['mlimit'],
+                bval='r')
         else:
             qparse['des']['constraint']=' and {m1:s}<{ml1:.1f} and cos.nepochs_{bval:s}>0'.format(
                 m1=qparse['des']['mag'],
