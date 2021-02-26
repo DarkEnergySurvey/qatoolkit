@@ -31,7 +31,7 @@ if __name__ == "__main__":
     import sys
     import datetime
     import numpy
-#    import pandas as pd
+    import pandas as pd
     from astropy.coordinates import SkyCoord
     from astropy import units as u
     import fitsio
