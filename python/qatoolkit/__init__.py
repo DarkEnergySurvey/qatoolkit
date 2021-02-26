@@ -1,5 +1,8 @@
-from os import environ
 __author__  = "Robert Gruendl"
-__version__ = '0.2.11'
+__version__ = '3.0.0'
 version = __version__
-proddir = environ['QATOOLKIT_DIR']
+
+"""
+ A collection of Python-based QA tools/modules for DESDM
+"""
+print("# Module {:s} v{:s} is loaded".format(__name__,__version__))

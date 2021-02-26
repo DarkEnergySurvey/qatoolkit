@@ -8,20 +8,20 @@ Utilities internal to the single-epoch assessment script
 """
 #from __future__ import print_function
 
-import numpy 
-import matplotlib 
-matplotlib.use('Agg')
+import numpy
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Agg')
 
 ########################
 def QAplt_cloud( PlotFile, Data, astrom_good, verbose=False):
     """
     Function to produce a QA plot showing comparison between data and a reference
-    catalog.  Plots show the diagnosed amount of atmospheric opacity (extinction) 
+    catalog.  Plots show the diagnosed amount of atmospheric opacity (extinction)
     at the time of the observation.
 
     inputs:
-        PlotFile:   filename where the output plot will be written (can include 
+        PlotFile:   filename where the output plot will be written (can include
                         relative path)
         Data:       Custom dictionary that holds data for the plots.  These include:
                         nmatch:  (integer) number of matches to the reference catalog
@@ -34,7 +34,7 @@ def QAplt_cloud( PlotFile, Data, astrom_good, verbose=False):
                         mag_diff_reject: analogous points in mag_diff
 
                         mindes,maxdes: (float) range of data being plotted
-                        med_magdiff:   (float) median magnitide offset/difference 
+                        med_magdiff:   (float) median magnitide offset/difference
                                        between objects and refernce catalog
 
                         band:          (string) Band of observations
@@ -47,7 +47,7 @@ def QAplt_cloud( PlotFile, Data, astrom_good, verbose=False):
         astrom_good: Flag that causes overplotting of text indicating an astrometric failure
         verbose:    Provide verbose output (curently there is none).
 
-    OUTPUT: 
+    OUTPUT:
         Nothing is returned to the calling program (a PNG file is written where directed)
     """
 
@@ -122,14 +122,14 @@ def QAplt_maghist(PlotFileName,Data,astrom_good,verbose=False):
     exposure.
 
     inputs:
-        PlotFile:   filename where the output plot will be written (can include 
+        PlotFile:   filename where the output plot will be written (can include
                         relative path)
         Data:       Custom dictionary that holds data for the plots.
-                        nobj:        (integer) total number of objects 
+                        nobj:        (integer) total number of objects
                                          contributing to the histogram
                         bins:        list of magnitude bins
                         mag_hist:    list of number of objects per bin
-                        magerr_hist: list of median value of magerr for 
+                        magerr_hist: list of median value of magerr for
                                         objects in each magnitude bin
                         band:        (string) Band of observations
                         magtype:       (string) Type of magnitude plotted
@@ -138,7 +138,7 @@ def QAplt_maghist(PlotFileName,Data,astrom_good,verbose=False):
         astrom_good: Flag that causes overplotting of text indicating an astrometric failure
         verbose:    Provide verbose output (curently there is none).
 
-    OUTPUT: 
+    OUTPUT:
         Nothing is returned to the calling program (a PNG file is written where directed)
     """
 
@@ -157,7 +157,7 @@ def QAplt_maghist(PlotFileName,Data,astrom_good,verbose=False):
     plt.ylabel('# objects')
 #
 #   Second panel showing median MAGERR per bin
-#    
+#
     plt.subplot(2,1,2)
     if (Data['nobj']>10):
         plt.scatter(Data['mag_raw'],Data['magerr_raw'],marker='.',color='gray')
@@ -168,4 +168,3 @@ def QAplt_maghist(PlotFileName,Data,astrom_good,verbose=False):
     plt.savefig(PlotFileName)
 
     return 0
-
