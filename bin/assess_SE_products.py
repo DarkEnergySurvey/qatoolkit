@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # $Id$
 # $Rev: 44620 $:  # Revision of last commit.
 # $LastChangedBy: rgruendl $:  # Author of last commit.
@@ -31,18 +31,17 @@ if __name__ == "__main__":
     import sys
     import datetime
     import numpy
-    import pandas as pd
+#    import pandas as pd
     from astropy.coordinates import SkyCoord
     from astropy import units as u
     import fitsio
-    import qatoolkit.assess_SE_legacy as SEleg
+#    import qatoolkit.assess_SE_legacy as SEleg
     import qatoolkit.assess_SE_plot   as SEplot
 #    import matplotlib 
 #    matplotlib.use('Agg')
 #    import matplotlib.pyplot as plt
     
-    svnid="$Id$"
-    svnrev=svnid.split(" ")[2]
+    version="0.2.11"
     db_table="firstcut_eval"
 
     parser = argparse.ArgumentParser(description='Assess whether the pipeline products of a FIRSTCUT/FINALCUT processing meet survey quality metrics.')
@@ -54,8 +53,8 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--list',     action='store', type=str, default=None, 
                         help='Optional list of catalogs for the assessment (otherwise query for "red_finalcut" catalogs associated with the Request Unit Attempt)')
 
-    parser.add_argument('-a', '--analyst',  action='store', type=str, default='assess_RUN_v%s'%(svnrev), 
-                        help='Provides value for analyst (default: assess_RUN_v%s, \"None\" will use os.getlogin())'%(svnrev))
+    parser.add_argument('-a', '--analyst',  action='store', type=str, default='assess_SE_products.py', 
+                        help='Provides value for analyst (default: assess_SE_products.py, \"None\" will use os.getlogin())')
     parser.add_argument('-c', '--csv',      action='store_true', default=False, help='Flag for optional output of CSV')
     parser.add_argument('-u', '--updateDB', action='store_true', default=False, help='Flag for program to DIRECTLY update DB (%s).' % (db_table) )
     parser.add_argument('--over_table',     action='store', type=str, default=None, help='Override output DB table with specified table')
@@ -134,9 +133,15 @@ if __name__ == "__main__":
 #
 #   Setup for database interactions (through despydb)
 #
-    dbh = despydb.desdbi.DesDbi(None,args.section,retry=True)
+    try:
+        desdmfile = os.environ["des_services"]
+    except KeyError:
+        desdmfile = None
+    dbh = despydb.desdbi.DesDbi(desdmfile, args.section, retry=True)
+
     if (not(args.scisection is None)):
-        dbhsci = despydb.desdbi.DesDbi(None,args.scisection,retry=True)
+        dbhsci = despydb.desdbi.DesDbi(desdmfile,args.scisection,retry=True)
+
     cur = dbh.cursor()
 
 #################################################
@@ -378,13 +383,19 @@ if __name__ == "__main__":
     CatList=[]
     for cat_fname in cat_dict:
         CatList.append([cat_fname])
-    tempTable="GTT_FILENAME"
-#    curDB = dbh.cursor()
+#
+#   RAG: switched from GTT_FILENAME to GTT_STR for current Oracle implementation.
+#        To switch back it is next line... the insert_many below and then the query 
+#           needs to constrain on g.filename instead of g.str
+#
+#    tempTable="GTT_FILENAME"
+    tempTable="GTT_STR"
     cur.execute('delete from {:s}'.format(tempTable))
     # load filenames into GTT_FILENAME table
     if (args.verbose):
         print("# Loading {:s} table for secondary queries with entries for {:d} images".format(tempTable,len(CatList)))
-    dbh.insert_many(tempTable,['FILENAME'],CatList)
+#    dbh.insert_many(tempTable,['FILENAME'],CatList)
+    dbh.insert_many(tempTable,['STR'],CatList)
 
 #    for index, tmp_fname in enumerate(cat_fname):
     tq0=time.time()
@@ -405,7 +416,7 @@ if __name__ == "__main__":
             i.rac1,i.rac2,i.rac3,i.rac4,
             i.decc1,i.decc2,i.decc3,i.decc4
         from {schema:s}image i, {schema:s}catalog c, {ttab:s} g
-        where c.filename=g.filename
+        where c.filename=g.str
             and c.pfw_attempt_id=i.pfw_attempt_id 
             and i.pfw_attempt_id={aid:}
             and i.filetype='red_immask' 
@@ -927,16 +938,16 @@ if __name__ == "__main__":
 #   Report exposure information for current 
 #
     print("########################################")
-    print("#   date_obs: ",exp_rec['date_obs'])
-    print("#       Nite: ",exp_rec['nite'])
-    print("#   Exposure: ",exp_rec['expnum'])
-    print("#       Band: ",exp_rec['band'])
+    print("#   date_obs: {:}".format(exp_rec['date_obs']))
+    print("#       Nite: {:}".format(exp_rec['nite']))
+    print("#   Exposure: {:}".format(exp_rec['expnum']))
+    print("#       Band: {:}".format(exp_rec['band']))
     print("#    Exptime: {:.1f} ".format(exp_rec['exptime']))
-    print("#      BUNIT: ",exp_rec['bunit'])
+    print("#      BUNIT: {:}".format(exp_rec['bunit']))
     print("# ")
-    print("#    Obstype: ",exp_rec['obstype'])
-    print("#     Object: ",exp_rec['object'])
-    print("#    Program: ",exp_rec['program'])
+    print("#    Obstype: {:}".format(exp_rec['obstype']))
+    print("#     Object: {:}".format(exp_rec['object']))
+    print("#    Program: {:}".format(exp_rec['program']))
     print("# ")
     print("#      Telescope(Ra,Dec): {:9.5f} {:9.5f} ".format(exp_rec['tradeg'],exp_rec['tdecdeg']))
     print("#")

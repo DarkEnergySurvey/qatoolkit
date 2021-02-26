@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # $Id$
 # $Rev$:  # Revision of last commit.
 # $LastChangedBy$:  # Author of last commit.
@@ -120,20 +120,20 @@ def get_image_list(imageDict,RaDec,frac,band,ProcTag,releasePrefix,dbh,dbSchema,
 
 
 ######################################################################################
-def check_blacklist(imageDict,blacklistTable,releasePrefix,dbh,dbSchema,Timing=False,verbose=0):
+def check_excludelist(imageDict,excludelistTable,releasePrefix,dbh,dbSchema,Timing=False,verbose=0):
 
-    """ Query code to check whether images have been blacklisted.
+    """ Query code to check whether images have been included in the exclude_list.
 
         Inputs:
             imageDict  Dictionary that holds previous results.
-            blacklistTable: Name of blacklist table
+            excludelistTable: Name of excludelist table
             releasePrefix: Prefix string (including _'s) to identify a specific set of tables
             dbh:       Database connection to be used
             dbSchema:  Schema over which queries will occur.
             verbose:   Integer setting level of verbosity when running.
 
         Returns:
-            ImageDict: Image dictionary (with blacklisted images removed)
+            ImageDict: Image dictionary (with excludelist images removed)
     """
 
     t0=time.time()
@@ -142,26 +142,26 @@ def check_blacklist(imageDict,blacklistTable,releasePrefix,dbh,dbSchema,Timing=F
     for img in imageDict:
         ImgList.append([img])
 
-    # Make sure the GTT_FILENAME table is empty
-#    tempTable="GTT_FILENAME"
-    tempTable="gruendl.my_tmp_filename"
+    # Make sure the GTT_STR table is empty
+    tempTable="GTT_STR"
+#    tempTable="gruendl.my_tmp_filename"
 
     curDB = dbh.cursor()
     curDB.execute('delete from {:s}'.format(tempTable))
-    # load filenames into GTT_FILENAME table
+    # load filenames into GTT_STR table
     if (verbose > 0):
         print("# Loading {:s} table for secondary queries with entries for {:d} images".format(tempTable,len(ImgList)))
-    dbh.insert_many(tempTable,['FILENAME'],ImgList)
+    dbh.insert_many(tempTable,['STR'],ImgList)
 
 #
 #   The main query
 #
-    query="""SELECT g.filename 
+    query="""SELECT g.str as filename
             FROM {schema:s}{rpref:s}image i, {ttab:s} g
-            WHERE g.filename=i.filename
-                and not exists (select 1 from {schema:s}{blist:s} b where b.expnum=i.expnum and b.ccdnum=i.ccdnum)
+            WHERE g.str=i.filename
+                and not exists (select 1 from {schema:s}{elist:s} b where b.expnum=i.expnum and b.ccdnum=i.ccdnum)
             """.format(
-            schema=dbSchema, rpref=releasePrefix, blist=blacklistTable, ttab=tempTable)
+            schema=dbSchema, rpref=releasePrefix, elist=excludelistTable, ttab=tempTable)
 
     if (verbose > 0):
         if (verbose == 1):
@@ -194,9 +194,9 @@ def check_blacklist(imageDict,blacklistTable,releasePrefix,dbh,dbSchema,Timing=F
         if (len(imageDict)>len(keepFileList)):
             for fname in imageDict:
                 if (fname not in keepFileList):
-                    print("#  Blacklist detected.  Will remove image: {:s}".format(fname))
+                    print("#  Exclude list detected.  Will remove image: {:s}".format(fname))
         else:
-            print("#  No images present in the  Blacklist")  
+            print("#  No images present in the Exclude list")  
 
 
 #
@@ -208,10 +208,10 @@ def check_blacklist(imageDict,blacklistTable,releasePrefix,dbh,dbSchema,Timing=F
             newImageDict[fname]=imageDict[fname]
 
     if (verbose>0):
-        print("# Blacklist query results removed {:d} images.  {:d} images remain in dict".format((len(imageDict)-len(newImageDict)),len(newImageDict)))
+        print("# Exclude ist query results removed {:d} images.  {:d} images remain in dict".format((len(imageDict)-len(newImageDict)),len(newImageDict)))
     if (Timing):
         t1=time.time()
-        print("# Blacklist query execution time: {:.2f}".format(t1-t0))
+        print("# Exclude list query execution time: {:.2f}".format(t1-t0))
     print("#------------------------------------------")  
 
     curDB.close()
@@ -222,7 +222,7 @@ def check_blacklist(imageDict,blacklistTable,releasePrefix,dbh,dbSchema,Timing=F
 ######################################################################################
 def check_zeropoint(imageDict,zptDict,releasePrefix,dbh,dbSchema,Timing=False,verbose=0):
 
-    """ Query code to check whether images have been blacklisted.
+    """ Query code to check whether images have been included in the excludelist.
 
         Inputs:
             imageDict  Dictionary that holds previous results.
@@ -232,7 +232,7 @@ def check_zeropoint(imageDict,zptDict,releasePrefix,dbh,dbSchema,Timing=False,ve
             verbose:   Integer setting level of verbosity when running.
 
         Returns:
-            ImageDict: Image dictionary (with blacklisted images removed)
+            ImageDict: Image dictionary (with excluded images removed)
     """
 
     t0=time.time()
@@ -241,23 +241,23 @@ def check_zeropoint(imageDict,zptDict,releasePrefix,dbh,dbSchema,Timing=False,ve
     for img in imageDict:
         ImgList.append([img])
 
-    # Make sure the GTT_FILENAME table is empty
-#    tempTable="GTT_FILENAME"
-    tempTable="gruendl.my_tmp_filename"
+    # Make sure the GTT_STR table is empty
+    tempTable="GTT_STR"
+#    tempTable="gruendl.my_tmp_filename"
 
     curDB = dbh.cursor()
     curDB.execute('delete from {:s}'.format(tempTable))
-    # load filenames into GTT_FILENAME table
+    # load filenames into GTT_STR table
     if (verbose > 0):
         print("# Loading {:s} table for secondary queries with entries for {:d} images".format(tempTable,len(ImgList)))
-    dbh.insert_many(tempTable,['FILENAME'],ImgList)
+    dbh.insert_many(tempTable,['STR'],ImgList)
 
 #
 #   The main query
 #
-    query="""SELECT g.filename, z.mag_zero, z.sigma_mag_zero
+    query="""SELECT g.str as filename, z.mag_zero, z.sigma_mag_zero
             FROM {ttab:s} g, {schema:s}{zptab:s} z 
-            WHERE g.filename=z.imagename
+            WHERE g.str=z.imagename
                 and z.source='{zsrc:s}' 
                 and z.version='{zver:s}' 
                 and z.flag<{zflag:s} 
@@ -325,7 +325,7 @@ def check_zeropoint(imageDict,zptDict,releasePrefix,dbh,dbSchema,Timing=False,ve
 ######################################################################################
 def check_eval(imageDict,evalDict,band,releasePrefix,dbh,dbSchema,Timing=False,verbose=0):
 
-    """ Query code to check whether images have been blacklisted.
+    """ Query code to check whether images have been excluded.
 
         Inputs:
             imageDict: Dictionary that holds previous results.
@@ -335,7 +335,7 @@ def check_eval(imageDict,evalDict,band,releasePrefix,dbh,dbSchema,Timing=False,v
             verbose:   Integer setting level of verbosity when running.
 
         Returns:
-            ImageDict: Image dictionary (with blacklisted images removed)
+            ImageDict: Image dictionary (with exclude images removed)
     """
 
     t0=time.time()
@@ -344,26 +344,26 @@ def check_eval(imageDict,evalDict,band,releasePrefix,dbh,dbSchema,Timing=False,v
     for img in imageDict:
         ImgList.append([img])
 
-    # Make sure the GTT_FILENAME table is empty
-#    tempTable="GTT_FILENAME"
-    tempTable="gruendl.my_tmp_filename"
+    # Make sure the GTT_STR table is empty
+    tempTable="GTT_STR"
+#    tempTable="gruendl.my_tmp_filename"
 
     curDB = dbh.cursor()
     curDB.execute('delete from {:s}'.format(tempTable))
-    # load filenames into GTT_FILENAME table
+    # load filenames into GTT_STR table
     if (verbose > 0):
         print("# Loading {:s} table for secondary queries with entries for {:d} images".format(tempTable,len(ImgList)))
-    dbh.insert_many(tempTable,['FILENAME'],ImgList)
+    dbh.insert_many(tempTable,['STR'],ImgList)
 
 #
 #   The main query
 #   RAG: Note that work would need to be done here to facilitate using tables other than QA_SUMMARY
 #
-    query="""SELECT g.filename, 
+    query="""SELECT g.str as filename, 
                 q.psf_fwhm as fwhm, 
                 CASE WHEN q.t_eff < 0.0 THEN q.f_eff*q.b_eff ELSE q.t_eff END as t_eff
             FROM {ttab:s} g, {schema:s}{rpref:s}image i, {schema:s}{etab:s} q 
-            WHERE g.filename=i.filename
+            WHERE g.str=i.filename
                 and i.pfw_attempt_id=q.pfw_attempt_id
             """.format(
             schema=dbSchema, etab=evalDict['table'], ttab=tempTable, rpref=releasePrefix)

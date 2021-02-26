@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # $Id: assess_SE.py 44620 2016-11-17 17:22:35Z rgruendl $
 # $Rev: 44620 $:  # Revision of last commit.
 # $LastChangedBy: rgruendl $:  # Author of last commit.
@@ -6,13 +6,12 @@
 """
 Utilities internal to the single-epoch assessment script
 """
-from __future__ import print_function
+#from __future__ import print_function
 
 import numpy 
 import matplotlib 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 
 ########################
 def QAplt_cloud( PlotFile, Data, astrom_good, verbose=False):
@@ -68,20 +67,20 @@ def QAplt_cloud( PlotFile, Data, astrom_good, verbose=False):
 
     plt.xlabel('DES MAG_{:s}({:s})'.format(Data['magtype'],Data['band']))
     if (Data['band'] in ["u","g"]):
-        plt.ylabel('%s g\'' % Data['cat'].upper() )
+        plt.ylabel('{:s} g\''.format(Data['cat'].upper()) )
     elif (Data['band'] in ["r","VR"]):
-        plt.ylabel('%s r\'' % Data['cat'].upper() )
+        plt.ylabel('{:s} r\''.format(Data['cat'].upper()) )
     elif (Data['band'] in ["i","z","Y"]):
-        plt.ylabel('%s i\'' % Data['cat'].upper() )
+        plt.ylabel('{:s} i\''.format(Data['cat'].upper()) )
     else:
-        plt.ylabel('%s [unknown]' % Data['cat'].upper() )
+        plt.ylabel('{:s} [unknown]'.format(Data['cat'].upper()) )
     if ('mindes' in Data):
         xtxt=Data['mindes']+(0.025*(Data['maxdes']-Data['mindes']))
         ytxt=Data['maxdes']-(0.15*(Data['maxdes']-Data['mindes']))
     else:
         xtxt=10.0+(0.025*(18.-10.))
         ytxt=18.0-(0.15*(18.-10.))
-    plt.text(xtxt,ytxt,'Number of %s matches: %d' % (Data['cat'].upper(),Data['nmatch']))
+    plt.text(xtxt,ytxt,'Number of {:s} matches: {:d}'.format(Data['cat'].upper(),Data['nmatch']))
     if (not(astrom_good)):
         if ('mindes' in Data):
             ytxt=Data['maxdes']-(0.075*(Data['maxdes']-Data['mindes']))
@@ -104,13 +103,13 @@ def QAplt_cloud( PlotFile, Data, astrom_good, verbose=False):
 
     plt.xlabel('DES MAG_{:s}({:s})'.format(Data['magtype'],Data['band']))
     if (Data['band'] in ["u","g"]):
-        plt.ylabel('DES - %s g\'' % Data['cat'].upper() )
+        plt.ylabel('DES - {:s} g\''.format(Data['cat'].upper()) )
     elif (Data['band'] in ["r","VR"]):
-        plt.ylabel('DES - %s r\'' % Data['cat'].upper() )
+        plt.ylabel('DES - {:s} r\''.format(Data['cat'].upper()) )
     elif (Data['band'] in ["i","z","Y"]):
-        plt.ylabel('DES - %s i\'' % Data['cat'].upper() )
+        plt.ylabel('DES - {:s} i\''.format(Data['cat'].upper()) )
     else:
-        plt.ylabel('DES - %s [unknown]' % Data['cat'].upper() )
+        plt.ylabel('DES - {:s} [unknown]'.format(Data['cat'].upper()) )
     plt.savefig(PlotFile)
 
     return 0

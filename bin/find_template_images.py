@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # $Id$
 # $Rev$:  # Revision of last commit.
 # $LastChangedBy$:  # Author of last commit.
@@ -35,8 +35,8 @@ if __name__ == "__main__":
     parser.add_argument('--release',      action='store', type=str, default='Y3A2', help='Prefix specifying a set of release table (Use "None" when working with PROD in DESOPER)')
     parser.add_argument('-s','--section', action='store', type=str, default=None,   help='section of .desservices file with connection info')
     parser.add_argument('-S','--Schema',  action='store', type=str, default=None,   help='DB schema (do not include \'.\').')
-    parser.add_argument('--use_blacklist', action='store_true', default=False, help='Flag to constrain results to not appear in the blacklist')
-    parser.add_argument('--blacklist',     action='store', type=str, default='Y3A2_BLACKLIST', help='Over-ride name of blacklist table to use (default=Y3A2_BLACKLIST)')
+    parser.add_argument('--use_excludelist', action='store_true', default=False, help='Flag to constrain results to not appear in the EXCLUDE_LIST')
+    parser.add_argument('--excludelist',     action='store', type=str, default='Y3A2_EXCLUDE_LIST', help='Over-ride name of EXCLUDE_LIST table to use (default=Y3A2_EXCLUDE_LIST)')
     parser.add_argument('--use_eval',     action='store_true', default=False, help='Flag to constrain results to match DES survey quality cuts')
     parser.add_argument('--evaltable',     action='store', type=str, default='Y3A2_QA_SUMMARY', help='Over-ride name of evaluation table to use (default=Y3A2_QA_SUMMARY)')
     parser.add_argument('--use_zpt',      action='store_true', default=False, help='Flag to constrain results to have a zeropoint available')
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if (args.verbose > 0):
-        print("Args: {:s}".format(args))
+        print("Args: {:}".format(args))
 
 ##########################################################
 #   Handle simple args (verbose, Schema, bandlist)
@@ -114,8 +114,8 @@ if __name__ == "__main__":
     imageDict={}
     imageDict=tm.get_image_list(imageDict,radec,frac,args.band,args.proctag,releasePrefix,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
 
-    if (args.use_blacklist):
-        imageDict=tm.check_blacklist(imageDict,args.blacklist,releasePrefix,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
+    if (args.use_excludelist):
+        imageDict=tm.check_excludelist(imageDict,args.excludelist,releasePrefix,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
 
     if (args.use_zpt):
         imageDict=tm.check_zeropoint(imageDict,zptDict,releasePrefix,dbh,dbSchema,Timing=args.Timing,verbose=verbose)
