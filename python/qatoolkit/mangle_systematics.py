@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # $Id: mangle_systematics.py 44620 2016-11-17 17:22:35Z rgruendl $
 # $Rev: 44620 $:  # Revision of last commit.
 # $LastChangedBy$:  # Author of last commit.
@@ -7,7 +7,7 @@
 Utilities to tie COADD object IDs to their associated single-epoch images and 
 systematics measurements.
 """
-from __future__ import print_function
+#from __future__ import print_function
 
 import despydb.desdbi
 import time
@@ -219,7 +219,7 @@ def get_CCDGON_Dict(molyArray,BDict,dbh,dbSchema,releasePrefix,Timing=False,verb
             #    these in turn become NaN (I think this is because Pandas (are bad pandas))
             #    that is in turn caught and they are turned into zero's
             if (i>0):
-                IdList.append([i])
+                IdList.append([int(i)])
 
         # Make sure the GTT_ID table is empty
         curDB.execute('delete from {:s}'.format(tempTable))
@@ -361,7 +361,7 @@ def collate_object_systematics(collateDict,IdArray,molyArray,BDict,molygonDict,c
     
     ctr = 0
     # loop over objects
-    for i in xrange(IdArray.size):
+    for i in range(IdArray.size):
         for band in BDict:
             iband=BDict[band]
             if (molyArray[iband,i]>0):

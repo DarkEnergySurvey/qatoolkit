@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # $Id$
 # $Rev$:  # Revision of last commit.
 # $LastChangedBy$:  # Author of last commit.
@@ -13,7 +13,7 @@ import os
 import despydb.desdbi
 import time
 import sys
-import esutil
+#import esutil
 import numpy as np
 import pandas as pd
 #import fgcm_y3a1_tools
@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if (args.verbose > 0):
-        print("Args: {:s}".format(args))
+        print("Args: {:}".format(args))
 
 #    pi=3.141592654
 #    halfpi=pi/2.0
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     BandList=['g','r','i','z','Y']
 #   Setup a standard proxy index for each band (in molyArray)
     BDict={}
-    for i in xrange(len(BandList)):
+    for i in range(len(BandList)):
         BDict[BandList[i]]=i
 
 ########################################################
