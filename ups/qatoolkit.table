@@ -1,8 +1,9 @@
-setupRequired(despydb 2.0.2+5)
-setupRequired(fitsio 0.9.8rc1+8)
+setupRequired(despydb 3.0.0+0)
+setupRequired(fitsio 1.1.5+0)
 # for revised version of assess_SE_products.py
 # pandas will load matplotlib
-setupRequired(pandas 0.15.2+5)
-setupRequired(astropy 1.1.2+4)
+setupRequired(pandas  1.3.2+2)
+setupRequired(astropy 4.0+2)
+setupRequired(matplotlib 3.5.0+1)
 envAppend(PATH, ${PRODUCT_DIR}/bin)
 envAppend(PYTHONPATH, ${PRODUCT_DIR}/python/)
