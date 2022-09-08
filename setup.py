@@ -5,7 +5,7 @@ import glob
 bin_files = glob.glob("bin/*")
 # The main call
 setup(name='qatoolkit',
-      version ='3.0.0',
+      version ='3.0.1',
       license = "GPL",
       description = "A set of handy Python utility scripts for DESDM",
       author = "Robert Gruendl",
